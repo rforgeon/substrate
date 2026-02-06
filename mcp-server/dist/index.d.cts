@@ -417,8 +417,8 @@ declare const Observation: z.ZodObject<{
     updated_at: z.ZodString;
     expires_at: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    id: string;
     status: "pending" | "confirmed" | "contradicted" | "stale";
+    id: string;
     agent_hash: string;
     domain: string;
     category: "error" | "behavior" | "auth" | "rate_limit" | "format";
@@ -924,8 +924,8 @@ declare const StoredObservation: z.ZodObject<{
     vector_id: z.ZodOptional<z.ZodString>;
     content_hash: z.ZodString;
 }, "strip", z.ZodTypeAny, {
-    id: string;
     status: "pending" | "confirmed" | "contradicted" | "stale";
+    id: string;
     agent_hash: string;
     domain: string;
     category: "error" | "behavior" | "auth" | "rate_limit" | "format";
@@ -1163,8 +1163,8 @@ declare const PeerConfig: z.ZodObject<{
     enabled: z.ZodDefault<z.ZodBoolean>;
 }, "strip", z.ZodTypeAny, {
     path: string;
-    name: string;
     enabled: boolean;
+    name: string;
 }, {
     path: string;
     name: string;
@@ -1213,8 +1213,8 @@ declare const SyncConfig: z.ZodObject<{
         enabled: z.ZodDefault<z.ZodBoolean>;
     }, "strip", z.ZodTypeAny, {
         path: string;
-        name: string;
         enabled: boolean;
+        name: string;
     }, {
         path: string;
         name: string;
@@ -1227,8 +1227,8 @@ declare const SyncConfig: z.ZodObject<{
     outbox_path: string;
     peers: {
         path: string;
-        name: string;
         enabled: boolean;
+        name: string;
     }[];
 }, {
     outbox_path: string;
@@ -1301,8 +1301,8 @@ declare const SubstrateConfig: z.ZodObject<{
             enabled: z.ZodDefault<z.ZodBoolean>;
         }, "strip", z.ZodTypeAny, {
             path: string;
-            name: string;
             enabled: boolean;
+            name: string;
         }, {
             path: string;
             name: string;
@@ -1315,8 +1315,8 @@ declare const SubstrateConfig: z.ZodObject<{
         outbox_path: string;
         peers: {
             path: string;
-            name: string;
             enabled: boolean;
+            name: string;
         }[];
     }, {
         outbox_path: string;
@@ -1345,7 +1345,7 @@ declare const SubstrateConfig: z.ZodObject<{
     log_level: z.ZodDefault<z.ZodEnum<["debug", "info", "warn", "error"]>>;
 }, "strip", z.ZodTypeAny, {
     data_dir: string;
-    log_level: "error" | "debug" | "info" | "warn";
+    log_level: "debug" | "info" | "warn" | "error";
     sqlite_path?: string | undefined;
     jsonl_path?: string | undefined;
     agent_id?: string | undefined;
@@ -1367,8 +1367,8 @@ declare const SubstrateConfig: z.ZodObject<{
         outbox_path: string;
         peers: {
             path: string;
-            name: string;
             enabled: boolean;
+            name: string;
         }[];
     } | undefined;
     embedding?: {
@@ -1408,7 +1408,7 @@ declare const SubstrateConfig: z.ZodObject<{
         dimension?: number | undefined;
         batch_size?: number | undefined;
     } | undefined;
-    log_level?: "error" | "debug" | "info" | "warn" | undefined;
+    log_level?: "debug" | "info" | "warn" | "error" | undefined;
 }>;
 type SubstrateConfig = z.infer<typeof SubstrateConfig>;
 declare function createDefaultConfig(dataDir: string): SubstrateConfig;
@@ -1504,8 +1504,8 @@ declare class Storage {
         since?: string;
         limit?: number;
     }): {
-        id: string;
         status: "pending" | "confirmed" | "contradicted" | "stale";
+        id: string;
         agent_hash: string;
         domain: string;
         category: "error" | "behavior" | "auth" | "rate_limit" | "format";
@@ -2091,14 +2091,21 @@ interface SubstrateContext {
     logger: Logger;
     agentHash: string;
 }
-/**
- * Create and configure the Substrate MCP server
- */
-declare function createSubstrateServer(userConfig?: Partial<SubstrateConfig>): Promise<{
+interface CreateServerOptions extends Partial<SubstrateConfig> {
+    /** Defer vector search initialization for faster startup */
+    defer_vector_search?: boolean;
+}
+interface CreateServerResult {
     server: McpServer;
     context: SubstrateContext;
     cleanup: () => void;
-}>;
+    /** Call this to initialize vector search if defer_vector_search was true */
+    initializeVectorSearch?: () => Promise<boolean>;
+}
+/**
+ * Create and configure the Substrate MCP server
+ */
+declare function createSubstrateServer(userConfig?: CreateServerOptions): Promise<CreateServerResult>;
 
 declare const ObserveInput: z.ZodObject<{
     domain: z.ZodString;
@@ -2352,8 +2359,8 @@ declare const LookupOutput: z.ZodObject<{
         updated_at: z.ZodString;
         expires_at: z.ZodOptional<z.ZodString>;
     }, "strip", z.ZodTypeAny, {
-        id: string;
         status: "pending" | "confirmed" | "contradicted" | "stale";
+        id: string;
         agent_hash: string;
         domain: string;
         category: "error" | "behavior" | "auth" | "rate_limit" | "format";
@@ -2490,8 +2497,8 @@ declare const LookupOutput: z.ZodObject<{
     has_more: z.ZodBoolean;
 }, "strip", z.ZodTypeAny, {
     observations: {
-        id: string;
         status: "pending" | "confirmed" | "contradicted" | "stale";
+        id: string;
         agent_hash: string;
         domain: string;
         category: "error" | "behavior" | "auth" | "rate_limit" | "format";
@@ -2819,8 +2826,8 @@ declare const SearchResult: z.ZodObject<{
 } & {
     score: z.ZodNumber;
 }, "strip", z.ZodTypeAny, {
-    id: string;
     status: "pending" | "confirmed" | "contradicted" | "stale";
+    id: string;
     agent_hash: string;
     domain: string;
     category: "error" | "behavior" | "auth" | "rate_limit" | "format";
@@ -3121,8 +3128,8 @@ declare const SearchOutput: z.ZodObject<{
     } & {
         score: z.ZodNumber;
     }, "strip", z.ZodTypeAny, {
-        id: string;
         status: "pending" | "confirmed" | "contradicted" | "stale";
+        id: string;
         agent_hash: string;
         domain: string;
         category: "error" | "behavior" | "auth" | "rate_limit" | "format";
@@ -3261,8 +3268,8 @@ declare const SearchOutput: z.ZodObject<{
     search_time_ms: z.ZodOptional<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
     results: {
-        id: string;
         status: "pending" | "confirmed" | "contradicted" | "stale";
+        id: string;
         agent_hash: string;
         domain: string;
         category: "error" | "behavior" | "auth" | "rate_limit" | "format";
@@ -3582,8 +3589,8 @@ declare const FailuresOutput: z.ZodObject<{
         updated_at: z.ZodString;
         expires_at: z.ZodOptional<z.ZodString>;
     }, "strip", z.ZodTypeAny, {
-        id: string;
         status: "pending" | "confirmed" | "contradicted" | "stale";
+        id: string;
         agent_hash: string;
         domain: string;
         category: "error" | "behavior" | "auth" | "rate_limit" | "format";
@@ -3720,8 +3727,8 @@ declare const FailuresOutput: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     total_count: number;
     failures: {
-        id: string;
         status: "pending" | "confirmed" | "contradicted" | "stale";
+        id: string;
         agent_hash: string;
         domain: string;
         category: "error" | "behavior" | "auth" | "rate_limit" | "format";
@@ -4158,8 +4165,8 @@ declare const SemanticSearchOutput: z.ZodObject<{
     } & {
         score: z.ZodNumber;
     }, "strip", z.ZodTypeAny, {
-        id: string;
         status: "pending" | "confirmed" | "contradicted" | "stale";
+        id: string;
         agent_hash: string;
         domain: string;
         category: "error" | "behavior" | "auth" | "rate_limit" | "format";
@@ -4298,8 +4305,8 @@ declare const SemanticSearchOutput: z.ZodObject<{
     search_time_ms: z.ZodOptional<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
     results: {
-        id: string;
         status: "pending" | "confirmed" | "contradicted" | "stale";
+        id: string;
         agent_hash: string;
         domain: string;
         category: "error" | "behavior" | "auth" | "rate_limit" | "format";

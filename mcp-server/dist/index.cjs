@@ -3047,20 +3047,31 @@ function registerStatsResource(server, context) {
 
 // src/server.ts
 async function createSubstrateServer(userConfig) {
-  const dataDir = userConfig?.data_dir ?? getDefaultDataDir();
+  const { defer_vector_search, ...configOverrides } = userConfig ?? {};
+  const dataDir = configOverrides?.data_dir ?? getDefaultDataDir();
   const baseConfig = createDefaultConfig(dataDir);
   const envConfig = configFromEnv(baseConfig);
-  const config = { ...envConfig, ...userConfig };
+  const config = { ...envConfig, ...configOverrides };
   const logger = createConsoleLogger(config.log_level);
   logger.info("Initializing Substrate MCP server...");
   const storage = new Storage(config);
   logger.info("Storage initialized");
   const vectorSearch = new VectorSearch(config);
-  const vectorAvailable = await vectorSearch.initialize();
-  if (vectorAvailable) {
-    logger.info("Vector search initialized");
+  let vectorAvailable = false;
+  const doInitializeVectorSearch = async () => {
+    logger.info("Initializing vector search (this may take a while on first run)...");
+    vectorAvailable = await vectorSearch.initialize();
+    if (vectorAvailable) {
+      logger.info("Vector search initialized");
+    } else {
+      logger.warn("Vector search not available - Qdrant may not be running");
+    }
+    return vectorAvailable;
+  };
+  if (!defer_vector_search) {
+    await doInitializeVectorSearch();
   } else {
-    logger.warn("Vector search not available - Qdrant may not be running");
+    logger.info("Vector search initialization deferred");
   }
   const confirmationConfig = config.confirmation ?? {
     threshold: 3,
@@ -3117,7 +3128,11 @@ async function createSubstrateServer(userConfig) {
     storage.close();
     logger.info("Shutdown complete");
   };
-  return { server, context, cleanup };
+  const result = { server, context, cleanup };
+  if (defer_vector_search) {
+    result.initializeVectorSearch = doInitializeVectorSearch;
+  }
+  return result;
 }
 function createSSEServer(mcpServer, options) {
   const { port, host = "0.0.0.0", apiKey, corsOrigins = ["*"] } = options;
@@ -3209,7 +3224,10 @@ async function main() {
   const transportMode = process.env["SUBSTRATE_TRANSPORT"] ?? "stdio";
   const port = parseInt(process.env["PORT"] ?? process.env["SUBSTRATE_PORT"] ?? "3000", 10);
   const apiKey = process.env["SUBSTRATE_API_KEY"];
-  const { server, cleanup } = await createSubstrateServer();
+  const deferVectorSearch = transportMode === "sse" || transportMode === "http";
+  const { server, cleanup, initializeVectorSearch } = await createSubstrateServer({
+    defer_vector_search: deferVectorSearch
+  });
   let sseServer = null;
   const shutdown = () => {
     console.log("Shutting down...");
@@ -3219,7 +3237,7 @@ async function main() {
   };
   process.on("SIGINT", shutdown);
   process.on("SIGTERM", shutdown);
-  if (transportMode === "sse" || transportMode === "http") {
+  if (deferVectorSearch) {
     sseServer = createSSEServer(server, {
       port,
       apiKey,
@@ -3232,6 +3250,11 @@ async function main() {
     } else {
       console.warn("WARNING: No API key set. Server is publicly accessible.");
       console.warn("Set SUBSTRATE_API_KEY environment variable for production.");
+    }
+    if (initializeVectorSearch) {
+      initializeVectorSearch().catch((err) => {
+        console.warn("Vector search initialization failed:", err);
+      });
     }
   } else {
     const transport = new stdio_js.StdioServerTransport();

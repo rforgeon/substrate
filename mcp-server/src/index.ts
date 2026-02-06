@@ -7,7 +7,12 @@ async function main() {
   const port = parseInt(process.env['PORT'] ?? process.env['SUBSTRATE_PORT'] ?? '3000', 10);
   const apiKey = process.env['SUBSTRATE_API_KEY'];
 
-  const { server, cleanup } = await createSubstrateServer();
+  // For SSE mode, defer vector search to allow quick startup
+  const deferVectorSearch = transportMode === 'sse' || transportMode === 'http';
+
+  const { server, cleanup, initializeVectorSearch } = await createSubstrateServer({
+    defer_vector_search: deferVectorSearch,
+  });
 
   // Handle shutdown signals
   let sseServer: ReturnType<typeof createSSEServer> | null = null;
@@ -22,7 +27,7 @@ async function main() {
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
 
-  if (transportMode === 'sse' || transportMode === 'http') {
+  if (deferVectorSearch) {
     // HTTP/SSE transport for remote access
     sseServer = createSSEServer(server, {
       port,
@@ -30,6 +35,7 @@ async function main() {
       corsOrigins: process.env['SUBSTRATE_CORS_ORIGINS']?.split(',') ?? ['*'],
     });
 
+    // Start HTTP server first (for health checks)
     await sseServer.start();
     console.log('Substrate MCP server running in SSE mode');
 
@@ -38,6 +44,13 @@ async function main() {
     } else {
       console.warn('WARNING: No API key set. Server is publicly accessible.');
       console.warn('Set SUBSTRATE_API_KEY environment variable for production.');
+    }
+
+    // Initialize vector search in background (can take 30+ seconds on first run)
+    if (initializeVectorSearch) {
+      initializeVectorSearch().catch(err => {
+        console.warn('Vector search initialization failed:', err);
+      });
     }
   } else {
     // Stdio transport for local Claude Desktop

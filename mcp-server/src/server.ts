@@ -34,17 +34,32 @@ export interface SubstrateContext {
   agentHash: string;
 }
 
+export interface CreateServerOptions extends Partial<SubstrateConfig> {
+  /** Defer vector search initialization for faster startup */
+  defer_vector_search?: boolean;
+}
+
+export interface CreateServerResult {
+  server: McpServer;
+  context: SubstrateContext;
+  cleanup: () => void;
+  /** Call this to initialize vector search if defer_vector_search was true */
+  initializeVectorSearch?: () => Promise<boolean>;
+}
+
 /**
  * Create and configure the Substrate MCP server
  */
 export async function createSubstrateServer(
-  userConfig?: Partial<SubstrateConfig>
-): Promise<{ server: McpServer; context: SubstrateContext; cleanup: () => void }> {
+  userConfig?: CreateServerOptions
+): Promise<CreateServerResult> {
+  const { defer_vector_search, ...configOverrides } = userConfig ?? {};
+
   // Build configuration
-  const dataDir = userConfig?.data_dir ?? getDefaultDataDir();
+  const dataDir = configOverrides?.data_dir ?? getDefaultDataDir();
   const baseConfig = createDefaultConfig(dataDir);
   const envConfig = configFromEnv(baseConfig);
-  const config: SubstrateConfig = { ...envConfig, ...userConfig };
+  const config: SubstrateConfig = { ...envConfig, ...configOverrides };
 
   // Create logger
   const logger = createConsoleLogger(config.log_level);
@@ -54,13 +69,25 @@ export async function createSubstrateServer(
   const storage = new Storage(config);
   logger.info('Storage initialized');
 
-  // Initialize vector search
+  // Initialize vector search (optionally deferred)
   const vectorSearch = new VectorSearch(config);
-  const vectorAvailable = await vectorSearch.initialize();
-  if (vectorAvailable) {
-    logger.info('Vector search initialized');
+  let vectorAvailable = false;
+
+  const doInitializeVectorSearch = async (): Promise<boolean> => {
+    logger.info('Initializing vector search (this may take a while on first run)...');
+    vectorAvailable = await vectorSearch.initialize();
+    if (vectorAvailable) {
+      logger.info('Vector search initialized');
+    } else {
+      logger.warn('Vector search not available - Qdrant may not be running');
+    }
+    return vectorAvailable;
+  };
+
+  if (!defer_vector_search) {
+    await doInitializeVectorSearch();
   } else {
-    logger.warn('Vector search not available - Qdrant may not be running');
+    logger.info('Vector search initialization deferred');
   }
 
   // Initialize confirmation engine
@@ -135,7 +162,14 @@ export async function createSubstrateServer(
     logger.info('Shutdown complete');
   };
 
-  return { server, context, cleanup };
+  const result: CreateServerResult = { server, context, cleanup };
+
+  // Include deferred initializer if vector search was deferred
+  if (defer_vector_search) {
+    result.initializeVectorSearch = doInitializeVectorSearch;
+  }
+
+  return result;
 }
 
 export { McpServer };
