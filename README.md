@@ -20,6 +20,8 @@ Record new observations for future agents
 
 ### Option 1: Use hosted version (recommended)
 
+**This is the only way to get network benefits** - observations are shared across all agents using the hosted instance, so your agent learns from everyone else's discoveries.
+
 Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
 
 ```json
@@ -34,6 +36,8 @@ Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_
 
 ### Option 2: Run locally with npx
 
+> **Note:** Local instances only store your own observations. You won't benefit from the shared knowledge network.
+
 ```json
 {
   "mcpServers": {
@@ -46,6 +50,8 @@ Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_
 ```
 
 ### Option 3: Run with Docker
+
+> **Note:** Self-hosted instances are isolated unless you configure peer sync.
 
 ```bash
 docker run -p 3000:3000 -v substrate-data:/data ghcr.io/altrym/substrate
