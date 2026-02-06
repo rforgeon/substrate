@@ -201,6 +201,60 @@ declare const StructuredData: z.ZodUnion<[z.ZodObject<{
     required: z.ZodOptional<z.ZodBoolean>;
 }, z.ZodTypeAny, "passthrough">>, z.ZodRecord<z.ZodString, z.ZodUnknown>]>;
 type StructuredData = z.infer<typeof StructuredData>;
+declare const ImpactEstimate: z.ZodObject<{
+    time_saved_seconds: z.ZodOptional<z.ZodNumber>;
+    success_rate_improvement: z.ZodOptional<z.ZodNumber>;
+    reasoning: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    time_saved_seconds?: number | undefined;
+    success_rate_improvement?: number | undefined;
+    reasoning?: string | undefined;
+}, {
+    time_saved_seconds?: number | undefined;
+    success_rate_improvement?: number | undefined;
+    reasoning?: string | undefined;
+}>;
+type ImpactEstimate = z.infer<typeof ImpactEstimate>;
+declare const ImpactReport: z.ZodObject<{
+    agent_hash: z.ZodString;
+    actual_time_saved_seconds: z.ZodOptional<z.ZodNumber>;
+    task_succeeded: z.ZodOptional<z.ZodBoolean>;
+    helpful: z.ZodBoolean;
+    feedback: z.ZodOptional<z.ZodString>;
+    reported_at: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    agent_hash: string;
+    helpful: boolean;
+    reported_at: string;
+    actual_time_saved_seconds?: number | undefined;
+    task_succeeded?: boolean | undefined;
+    feedback?: string | undefined;
+}, {
+    agent_hash: string;
+    helpful: boolean;
+    reported_at: string;
+    actual_time_saved_seconds?: number | undefined;
+    task_succeeded?: boolean | undefined;
+    feedback?: string | undefined;
+}>;
+type ImpactReport = z.infer<typeof ImpactReport>;
+declare const ImpactStats: z.ZodObject<{
+    total_uses: z.ZodDefault<z.ZodNumber>;
+    helpful_count: z.ZodDefault<z.ZodNumber>;
+    avg_time_saved_seconds: z.ZodOptional<z.ZodNumber>;
+    success_rate: z.ZodOptional<z.ZodNumber>;
+}, "strip", z.ZodTypeAny, {
+    total_uses: number;
+    helpful_count: number;
+    avg_time_saved_seconds?: number | undefined;
+    success_rate?: number | undefined;
+}, {
+    total_uses?: number | undefined;
+    helpful_count?: number | undefined;
+    avg_time_saved_seconds?: number | undefined;
+    success_rate?: number | undefined;
+}>;
+type ImpactStats = z.infer<typeof ImpactStats>;
 declare const Observation: z.ZodObject<{
     id: z.ZodString;
     agent_hash: z.ZodString;
@@ -302,6 +356,57 @@ declare const Observation: z.ZodObject<{
         max_length: z.ZodOptional<z.ZodNumber>;
         required: z.ZodOptional<z.ZodBoolean>;
     }, z.ZodTypeAny, "passthrough">>, z.ZodRecord<z.ZodString, z.ZodUnknown>]>>;
+    impact_estimate: z.ZodOptional<z.ZodObject<{
+        time_saved_seconds: z.ZodOptional<z.ZodNumber>;
+        success_rate_improvement: z.ZodOptional<z.ZodNumber>;
+        reasoning: z.ZodOptional<z.ZodString>;
+    }, "strip", z.ZodTypeAny, {
+        time_saved_seconds?: number | undefined;
+        success_rate_improvement?: number | undefined;
+        reasoning?: string | undefined;
+    }, {
+        time_saved_seconds?: number | undefined;
+        success_rate_improvement?: number | undefined;
+        reasoning?: string | undefined;
+    }>>;
+    impact_reports: z.ZodDefault<z.ZodArray<z.ZodObject<{
+        agent_hash: z.ZodString;
+        actual_time_saved_seconds: z.ZodOptional<z.ZodNumber>;
+        task_succeeded: z.ZodOptional<z.ZodBoolean>;
+        helpful: z.ZodBoolean;
+        feedback: z.ZodOptional<z.ZodString>;
+        reported_at: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        agent_hash: string;
+        helpful: boolean;
+        reported_at: string;
+        actual_time_saved_seconds?: number | undefined;
+        task_succeeded?: boolean | undefined;
+        feedback?: string | undefined;
+    }, {
+        agent_hash: string;
+        helpful: boolean;
+        reported_at: string;
+        actual_time_saved_seconds?: number | undefined;
+        task_succeeded?: boolean | undefined;
+        feedback?: string | undefined;
+    }>, "many">>;
+    impact_stats: z.ZodOptional<z.ZodObject<{
+        total_uses: z.ZodDefault<z.ZodNumber>;
+        helpful_count: z.ZodDefault<z.ZodNumber>;
+        avg_time_saved_seconds: z.ZodOptional<z.ZodNumber>;
+        success_rate: z.ZodOptional<z.ZodNumber>;
+    }, "strip", z.ZodTypeAny, {
+        total_uses: number;
+        helpful_count: number;
+        avg_time_saved_seconds?: number | undefined;
+        success_rate?: number | undefined;
+    }, {
+        total_uses?: number | undefined;
+        helpful_count?: number | undefined;
+        avg_time_saved_seconds?: number | undefined;
+        success_rate?: number | undefined;
+    }>>;
     status: z.ZodDefault<z.ZodEnum<["pending", "confirmed", "contradicted", "stale"]>>;
     confirmations: z.ZodDefault<z.ZodNumber>;
     confirming_agents: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
@@ -318,6 +423,14 @@ declare const Observation: z.ZodObject<{
     domain: string;
     category: "error" | "behavior" | "auth" | "rate_limit" | "format";
     summary: string;
+    impact_reports: {
+        agent_hash: string;
+        helpful: boolean;
+        reported_at: string;
+        actual_time_saved_seconds?: number | undefined;
+        task_succeeded?: boolean | undefined;
+        feedback?: string | undefined;
+    }[];
     confirmations: number;
     confirming_agents: string[];
     confidence: number;
@@ -358,6 +471,17 @@ declare const Observation: z.ZodObject<{
         max_length: z.ZodOptional<z.ZodNumber>;
         required: z.ZodOptional<z.ZodBoolean>;
     }, z.ZodTypeAny, "passthrough"> | undefined;
+    impact_estimate?: {
+        time_saved_seconds?: number | undefined;
+        success_rate_improvement?: number | undefined;
+        reasoning?: string | undefined;
+    } | undefined;
+    impact_stats?: {
+        total_uses: number;
+        helpful_count: number;
+        avg_time_saved_seconds?: number | undefined;
+        success_rate?: number | undefined;
+    } | undefined;
     expires_at?: string | undefined;
 }, {
     id: string;
@@ -401,6 +525,25 @@ declare const Observation: z.ZodObject<{
         max_length: z.ZodOptional<z.ZodNumber>;
         required: z.ZodOptional<z.ZodBoolean>;
     }, z.ZodTypeAny, "passthrough"> | undefined;
+    impact_estimate?: {
+        time_saved_seconds?: number | undefined;
+        success_rate_improvement?: number | undefined;
+        reasoning?: string | undefined;
+    } | undefined;
+    impact_reports?: {
+        agent_hash: string;
+        helpful: boolean;
+        reported_at: string;
+        actual_time_saved_seconds?: number | undefined;
+        task_succeeded?: boolean | undefined;
+        feedback?: string | undefined;
+    }[] | undefined;
+    impact_stats?: {
+        total_uses?: number | undefined;
+        helpful_count?: number | undefined;
+        avg_time_saved_seconds?: number | undefined;
+        success_rate?: number | undefined;
+    } | undefined;
     confirmations?: number | undefined;
     confirming_agents?: string[] | undefined;
     confidence?: number | undefined;
@@ -508,6 +651,19 @@ declare const CreateObservation: z.ZodObject<{
         max_length: z.ZodOptional<z.ZodNumber>;
         required: z.ZodOptional<z.ZodBoolean>;
     }, z.ZodTypeAny, "passthrough">>, z.ZodRecord<z.ZodString, z.ZodUnknown>]>>;
+    impact_estimate: z.ZodOptional<z.ZodObject<{
+        time_saved_seconds: z.ZodOptional<z.ZodNumber>;
+        success_rate_improvement: z.ZodOptional<z.ZodNumber>;
+        reasoning: z.ZodOptional<z.ZodString>;
+    }, "strip", z.ZodTypeAny, {
+        time_saved_seconds?: number | undefined;
+        success_rate_improvement?: number | undefined;
+        reasoning?: string | undefined;
+    }, {
+        time_saved_seconds?: number | undefined;
+        success_rate_improvement?: number | undefined;
+        reasoning?: string | undefined;
+    }>>;
     urgency: z.ZodOptional<z.ZodEnum<["normal", "high", "critical"]>>;
     tags: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     expires_at: z.ZodOptional<z.ZodString>;
@@ -548,6 +704,11 @@ declare const CreateObservation: z.ZodObject<{
         max_length: z.ZodOptional<z.ZodNumber>;
         required: z.ZodOptional<z.ZodBoolean>;
     }, z.ZodTypeAny, "passthrough"> | undefined;
+    impact_estimate?: {
+        time_saved_seconds?: number | undefined;
+        success_rate_improvement?: number | undefined;
+        reasoning?: string | undefined;
+    } | undefined;
     urgency?: "normal" | "high" | "critical" | undefined;
     tags?: string[] | undefined;
     expires_at?: string | undefined;
@@ -588,6 +749,11 @@ declare const CreateObservation: z.ZodObject<{
         max_length: z.ZodOptional<z.ZodNumber>;
         required: z.ZodOptional<z.ZodBoolean>;
     }, z.ZodTypeAny, "passthrough"> | undefined;
+    impact_estimate?: {
+        time_saved_seconds?: number | undefined;
+        success_rate_improvement?: number | undefined;
+        reasoning?: string | undefined;
+    } | undefined;
     urgency?: "normal" | "high" | "critical" | undefined;
     tags?: string[] | undefined;
     expires_at?: string | undefined;
@@ -694,6 +860,57 @@ declare const StoredObservation: z.ZodObject<{
         max_length: z.ZodOptional<z.ZodNumber>;
         required: z.ZodOptional<z.ZodBoolean>;
     }, z.ZodTypeAny, "passthrough">>, z.ZodRecord<z.ZodString, z.ZodUnknown>]>>;
+    impact_estimate: z.ZodOptional<z.ZodObject<{
+        time_saved_seconds: z.ZodOptional<z.ZodNumber>;
+        success_rate_improvement: z.ZodOptional<z.ZodNumber>;
+        reasoning: z.ZodOptional<z.ZodString>;
+    }, "strip", z.ZodTypeAny, {
+        time_saved_seconds?: number | undefined;
+        success_rate_improvement?: number | undefined;
+        reasoning?: string | undefined;
+    }, {
+        time_saved_seconds?: number | undefined;
+        success_rate_improvement?: number | undefined;
+        reasoning?: string | undefined;
+    }>>;
+    impact_reports: z.ZodDefault<z.ZodArray<z.ZodObject<{
+        agent_hash: z.ZodString;
+        actual_time_saved_seconds: z.ZodOptional<z.ZodNumber>;
+        task_succeeded: z.ZodOptional<z.ZodBoolean>;
+        helpful: z.ZodBoolean;
+        feedback: z.ZodOptional<z.ZodString>;
+        reported_at: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        agent_hash: string;
+        helpful: boolean;
+        reported_at: string;
+        actual_time_saved_seconds?: number | undefined;
+        task_succeeded?: boolean | undefined;
+        feedback?: string | undefined;
+    }, {
+        agent_hash: string;
+        helpful: boolean;
+        reported_at: string;
+        actual_time_saved_seconds?: number | undefined;
+        task_succeeded?: boolean | undefined;
+        feedback?: string | undefined;
+    }>, "many">>;
+    impact_stats: z.ZodOptional<z.ZodObject<{
+        total_uses: z.ZodDefault<z.ZodNumber>;
+        helpful_count: z.ZodDefault<z.ZodNumber>;
+        avg_time_saved_seconds: z.ZodOptional<z.ZodNumber>;
+        success_rate: z.ZodOptional<z.ZodNumber>;
+    }, "strip", z.ZodTypeAny, {
+        total_uses: number;
+        helpful_count: number;
+        avg_time_saved_seconds?: number | undefined;
+        success_rate?: number | undefined;
+    }, {
+        total_uses?: number | undefined;
+        helpful_count?: number | undefined;
+        avg_time_saved_seconds?: number | undefined;
+        success_rate?: number | undefined;
+    }>>;
     status: z.ZodDefault<z.ZodEnum<["pending", "confirmed", "contradicted", "stale"]>>;
     confirmations: z.ZodDefault<z.ZodNumber>;
     confirming_agents: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
@@ -713,6 +930,14 @@ declare const StoredObservation: z.ZodObject<{
     domain: string;
     category: "error" | "behavior" | "auth" | "rate_limit" | "format";
     summary: string;
+    impact_reports: {
+        agent_hash: string;
+        helpful: boolean;
+        reported_at: string;
+        actual_time_saved_seconds?: number | undefined;
+        task_succeeded?: boolean | undefined;
+        feedback?: string | undefined;
+    }[];
     confirmations: number;
     confirming_agents: string[];
     confidence: number;
@@ -754,6 +979,17 @@ declare const StoredObservation: z.ZodObject<{
         max_length: z.ZodOptional<z.ZodNumber>;
         required: z.ZodOptional<z.ZodBoolean>;
     }, z.ZodTypeAny, "passthrough"> | undefined;
+    impact_estimate?: {
+        time_saved_seconds?: number | undefined;
+        success_rate_improvement?: number | undefined;
+        reasoning?: string | undefined;
+    } | undefined;
+    impact_stats?: {
+        total_uses: number;
+        helpful_count: number;
+        avg_time_saved_seconds?: number | undefined;
+        success_rate?: number | undefined;
+    } | undefined;
     expires_at?: string | undefined;
     vector_id?: string | undefined;
 }, {
@@ -799,6 +1035,25 @@ declare const StoredObservation: z.ZodObject<{
         max_length: z.ZodOptional<z.ZodNumber>;
         required: z.ZodOptional<z.ZodBoolean>;
     }, z.ZodTypeAny, "passthrough"> | undefined;
+    impact_estimate?: {
+        time_saved_seconds?: number | undefined;
+        success_rate_improvement?: number | undefined;
+        reasoning?: string | undefined;
+    } | undefined;
+    impact_reports?: {
+        agent_hash: string;
+        helpful: boolean;
+        reported_at: string;
+        actual_time_saved_seconds?: number | undefined;
+        task_succeeded?: boolean | undefined;
+        feedback?: string | undefined;
+    }[] | undefined;
+    impact_stats?: {
+        total_uses?: number | undefined;
+        helpful_count?: number | undefined;
+        avg_time_saved_seconds?: number | undefined;
+        success_rate?: number | undefined;
+    } | undefined;
     confirmations?: number | undefined;
     confirming_agents?: string[] | undefined;
     confidence?: number | undefined;
@@ -866,6 +1121,19 @@ declare class SQLiteStorage {
     insertObservation(observation: StoredObservation): void;
     getObservation(id: string): StoredObservation | null;
     updateObservation(id: string, updates: Partial<StoredObservation>): void;
+    /**
+     * Add an impact report to an observation and update aggregated stats
+     */
+    addImpactReport(id: string, report: {
+        agent_hash: string;
+        helpful: boolean;
+        task_succeeded?: boolean;
+        actual_time_saved_seconds?: number;
+        feedback?: string;
+    }): {
+        success: boolean;
+        updated_stats?: StoredObservation['impact_stats'];
+    };
     queryObservations(options: QueryOptions): StoredObservation[];
     countObservations(options: QueryOptions): number;
     findConfirmationGroup(domain: string, path: string | undefined, category: string, contentHash: string): ConfirmationGroup | null;
@@ -1242,6 +1510,14 @@ declare class Storage {
         domain: string;
         category: "error" | "behavior" | "auth" | "rate_limit" | "format";
         summary: string;
+        impact_reports: {
+            agent_hash: string;
+            helpful: boolean;
+            reported_at: string;
+            actual_time_saved_seconds?: number | undefined;
+            task_succeeded?: boolean | undefined;
+            feedback?: string | undefined;
+        }[];
         confirmations: number;
         confirming_agents: string[];
         confidence: number;
@@ -1283,9 +1559,33 @@ declare class Storage {
             max_length: zod.ZodOptional<zod.ZodNumber>;
             required: zod.ZodOptional<zod.ZodBoolean>;
         }, zod.ZodTypeAny, "passthrough"> | undefined;
+        impact_estimate?: {
+            time_saved_seconds?: number | undefined;
+            success_rate_improvement?: number | undefined;
+            reasoning?: string | undefined;
+        } | undefined;
+        impact_stats?: {
+            total_uses: number;
+            helpful_count: number;
+            avg_time_saved_seconds?: number | undefined;
+            success_rate?: number | undefined;
+        } | undefined;
         expires_at?: string | undefined;
         vector_id?: string | undefined;
     }[];
+    /**
+     * Add an impact report to an observation
+     */
+    addImpactReport(id: string, report: {
+        agent_hash: string;
+        helpful: boolean;
+        task_succeeded?: boolean;
+        actual_time_saved_seconds?: number;
+        feedback?: string;
+    }): {
+        success: boolean;
+        updated_stats?: StoredObservation["impact_stats"];
+    };
     /**
      * Find an existing confirmation group
      */
@@ -1806,6 +2106,19 @@ declare const ObserveInput: z.ZodObject<{
     category: z.ZodEnum<["behavior", "error", "auth", "rate_limit", "format"]>;
     summary: z.ZodString;
     structured_data: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+    impact_estimate: z.ZodOptional<z.ZodObject<{
+        time_saved_seconds: z.ZodOptional<z.ZodNumber>;
+        success_rate_improvement: z.ZodOptional<z.ZodNumber>;
+        reasoning: z.ZodOptional<z.ZodString>;
+    }, "strip", z.ZodTypeAny, {
+        time_saved_seconds?: number | undefined;
+        success_rate_improvement?: number | undefined;
+        reasoning?: string | undefined;
+    }, {
+        time_saved_seconds?: number | undefined;
+        success_rate_improvement?: number | undefined;
+        reasoning?: string | undefined;
+    }>>;
     urgency: z.ZodOptional<z.ZodEnum<["normal", "high", "critical"]>>;
     tags: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
 }, "strip", z.ZodTypeAny, {
@@ -1814,6 +2127,11 @@ declare const ObserveInput: z.ZodObject<{
     summary: string;
     path?: string | undefined;
     structured_data?: Record<string, unknown> | undefined;
+    impact_estimate?: {
+        time_saved_seconds?: number | undefined;
+        success_rate_improvement?: number | undefined;
+        reasoning?: string | undefined;
+    } | undefined;
     urgency?: "normal" | "high" | "critical" | undefined;
     tags?: string[] | undefined;
 }, {
@@ -1822,6 +2140,11 @@ declare const ObserveInput: z.ZodObject<{
     summary: string;
     path?: string | undefined;
     structured_data?: Record<string, unknown> | undefined;
+    impact_estimate?: {
+        time_saved_seconds?: number | undefined;
+        success_rate_improvement?: number | undefined;
+        reasoning?: string | undefined;
+    } | undefined;
     urgency?: "normal" | "high" | "critical" | undefined;
     tags?: string[] | undefined;
 }>;
@@ -1968,6 +2291,57 @@ declare const LookupOutput: z.ZodObject<{
             max_length: z.ZodOptional<z.ZodNumber>;
             required: z.ZodOptional<z.ZodBoolean>;
         }, z.ZodTypeAny, "passthrough">>, z.ZodRecord<z.ZodString, z.ZodUnknown>]>>;
+        impact_estimate: z.ZodOptional<z.ZodObject<{
+            time_saved_seconds: z.ZodOptional<z.ZodNumber>;
+            success_rate_improvement: z.ZodOptional<z.ZodNumber>;
+            reasoning: z.ZodOptional<z.ZodString>;
+        }, "strip", z.ZodTypeAny, {
+            time_saved_seconds?: number | undefined;
+            success_rate_improvement?: number | undefined;
+            reasoning?: string | undefined;
+        }, {
+            time_saved_seconds?: number | undefined;
+            success_rate_improvement?: number | undefined;
+            reasoning?: string | undefined;
+        }>>;
+        impact_reports: z.ZodDefault<z.ZodArray<z.ZodObject<{
+            agent_hash: z.ZodString;
+            actual_time_saved_seconds: z.ZodOptional<z.ZodNumber>;
+            task_succeeded: z.ZodOptional<z.ZodBoolean>;
+            helpful: z.ZodBoolean;
+            feedback: z.ZodOptional<z.ZodString>;
+            reported_at: z.ZodString;
+        }, "strip", z.ZodTypeAny, {
+            agent_hash: string;
+            helpful: boolean;
+            reported_at: string;
+            actual_time_saved_seconds?: number | undefined;
+            task_succeeded?: boolean | undefined;
+            feedback?: string | undefined;
+        }, {
+            agent_hash: string;
+            helpful: boolean;
+            reported_at: string;
+            actual_time_saved_seconds?: number | undefined;
+            task_succeeded?: boolean | undefined;
+            feedback?: string | undefined;
+        }>, "many">>;
+        impact_stats: z.ZodOptional<z.ZodObject<{
+            total_uses: z.ZodDefault<z.ZodNumber>;
+            helpful_count: z.ZodDefault<z.ZodNumber>;
+            avg_time_saved_seconds: z.ZodOptional<z.ZodNumber>;
+            success_rate: z.ZodOptional<z.ZodNumber>;
+        }, "strip", z.ZodTypeAny, {
+            total_uses: number;
+            helpful_count: number;
+            avg_time_saved_seconds?: number | undefined;
+            success_rate?: number | undefined;
+        }, {
+            total_uses?: number | undefined;
+            helpful_count?: number | undefined;
+            avg_time_saved_seconds?: number | undefined;
+            success_rate?: number | undefined;
+        }>>;
         status: z.ZodDefault<z.ZodEnum<["pending", "confirmed", "contradicted", "stale"]>>;
         confirmations: z.ZodDefault<z.ZodNumber>;
         confirming_agents: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
@@ -1984,6 +2358,14 @@ declare const LookupOutput: z.ZodObject<{
         domain: string;
         category: "error" | "behavior" | "auth" | "rate_limit" | "format";
         summary: string;
+        impact_reports: {
+            agent_hash: string;
+            helpful: boolean;
+            reported_at: string;
+            actual_time_saved_seconds?: number | undefined;
+            task_succeeded?: boolean | undefined;
+            feedback?: string | undefined;
+        }[];
         confirmations: number;
         confirming_agents: string[];
         confidence: number;
@@ -2024,6 +2406,17 @@ declare const LookupOutput: z.ZodObject<{
             max_length: z.ZodOptional<z.ZodNumber>;
             required: z.ZodOptional<z.ZodBoolean>;
         }, z.ZodTypeAny, "passthrough"> | undefined;
+        impact_estimate?: {
+            time_saved_seconds?: number | undefined;
+            success_rate_improvement?: number | undefined;
+            reasoning?: string | undefined;
+        } | undefined;
+        impact_stats?: {
+            total_uses: number;
+            helpful_count: number;
+            avg_time_saved_seconds?: number | undefined;
+            success_rate?: number | undefined;
+        } | undefined;
         expires_at?: string | undefined;
     }, {
         id: string;
@@ -2067,6 +2460,25 @@ declare const LookupOutput: z.ZodObject<{
             max_length: z.ZodOptional<z.ZodNumber>;
             required: z.ZodOptional<z.ZodBoolean>;
         }, z.ZodTypeAny, "passthrough"> | undefined;
+        impact_estimate?: {
+            time_saved_seconds?: number | undefined;
+            success_rate_improvement?: number | undefined;
+            reasoning?: string | undefined;
+        } | undefined;
+        impact_reports?: {
+            agent_hash: string;
+            helpful: boolean;
+            reported_at: string;
+            actual_time_saved_seconds?: number | undefined;
+            task_succeeded?: boolean | undefined;
+            feedback?: string | undefined;
+        }[] | undefined;
+        impact_stats?: {
+            total_uses?: number | undefined;
+            helpful_count?: number | undefined;
+            avg_time_saved_seconds?: number | undefined;
+            success_rate?: number | undefined;
+        } | undefined;
         confirmations?: number | undefined;
         confirming_agents?: string[] | undefined;
         confidence?: number | undefined;
@@ -2084,6 +2496,14 @@ declare const LookupOutput: z.ZodObject<{
         domain: string;
         category: "error" | "behavior" | "auth" | "rate_limit" | "format";
         summary: string;
+        impact_reports: {
+            agent_hash: string;
+            helpful: boolean;
+            reported_at: string;
+            actual_time_saved_seconds?: number | undefined;
+            task_succeeded?: boolean | undefined;
+            feedback?: string | undefined;
+        }[];
         confirmations: number;
         confirming_agents: string[];
         confidence: number;
@@ -2124,6 +2544,17 @@ declare const LookupOutput: z.ZodObject<{
             max_length: z.ZodOptional<z.ZodNumber>;
             required: z.ZodOptional<z.ZodBoolean>;
         }, z.ZodTypeAny, "passthrough"> | undefined;
+        impact_estimate?: {
+            time_saved_seconds?: number | undefined;
+            success_rate_improvement?: number | undefined;
+            reasoning?: string | undefined;
+        } | undefined;
+        impact_stats?: {
+            total_uses: number;
+            helpful_count: number;
+            avg_time_saved_seconds?: number | undefined;
+            success_rate?: number | undefined;
+        } | undefined;
         expires_at?: string | undefined;
     }[];
     total_count: number;
@@ -2171,6 +2602,25 @@ declare const LookupOutput: z.ZodObject<{
             max_length: z.ZodOptional<z.ZodNumber>;
             required: z.ZodOptional<z.ZodBoolean>;
         }, z.ZodTypeAny, "passthrough"> | undefined;
+        impact_estimate?: {
+            time_saved_seconds?: number | undefined;
+            success_rate_improvement?: number | undefined;
+            reasoning?: string | undefined;
+        } | undefined;
+        impact_reports?: {
+            agent_hash: string;
+            helpful: boolean;
+            reported_at: string;
+            actual_time_saved_seconds?: number | undefined;
+            task_succeeded?: boolean | undefined;
+            feedback?: string | undefined;
+        }[] | undefined;
+        impact_stats?: {
+            total_uses?: number | undefined;
+            helpful_count?: number | undefined;
+            avg_time_saved_seconds?: number | undefined;
+            success_rate?: number | undefined;
+        } | undefined;
         confirmations?: number | undefined;
         confirming_agents?: string[] | undefined;
         confidence?: number | undefined;
@@ -2306,6 +2756,57 @@ declare const SearchResult: z.ZodObject<{
         max_length: z.ZodOptional<z.ZodNumber>;
         required: z.ZodOptional<z.ZodBoolean>;
     }, z.ZodTypeAny, "passthrough">>, z.ZodRecord<z.ZodString, z.ZodUnknown>]>>;
+    impact_estimate: z.ZodOptional<z.ZodObject<{
+        time_saved_seconds: z.ZodOptional<z.ZodNumber>;
+        success_rate_improvement: z.ZodOptional<z.ZodNumber>;
+        reasoning: z.ZodOptional<z.ZodString>;
+    }, "strip", z.ZodTypeAny, {
+        time_saved_seconds?: number | undefined;
+        success_rate_improvement?: number | undefined;
+        reasoning?: string | undefined;
+    }, {
+        time_saved_seconds?: number | undefined;
+        success_rate_improvement?: number | undefined;
+        reasoning?: string | undefined;
+    }>>;
+    impact_reports: z.ZodDefault<z.ZodArray<z.ZodObject<{
+        agent_hash: z.ZodString;
+        actual_time_saved_seconds: z.ZodOptional<z.ZodNumber>;
+        task_succeeded: z.ZodOptional<z.ZodBoolean>;
+        helpful: z.ZodBoolean;
+        feedback: z.ZodOptional<z.ZodString>;
+        reported_at: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        agent_hash: string;
+        helpful: boolean;
+        reported_at: string;
+        actual_time_saved_seconds?: number | undefined;
+        task_succeeded?: boolean | undefined;
+        feedback?: string | undefined;
+    }, {
+        agent_hash: string;
+        helpful: boolean;
+        reported_at: string;
+        actual_time_saved_seconds?: number | undefined;
+        task_succeeded?: boolean | undefined;
+        feedback?: string | undefined;
+    }>, "many">>;
+    impact_stats: z.ZodOptional<z.ZodObject<{
+        total_uses: z.ZodDefault<z.ZodNumber>;
+        helpful_count: z.ZodDefault<z.ZodNumber>;
+        avg_time_saved_seconds: z.ZodOptional<z.ZodNumber>;
+        success_rate: z.ZodOptional<z.ZodNumber>;
+    }, "strip", z.ZodTypeAny, {
+        total_uses: number;
+        helpful_count: number;
+        avg_time_saved_seconds?: number | undefined;
+        success_rate?: number | undefined;
+    }, {
+        total_uses?: number | undefined;
+        helpful_count?: number | undefined;
+        avg_time_saved_seconds?: number | undefined;
+        success_rate?: number | undefined;
+    }>>;
     status: z.ZodDefault<z.ZodEnum<["pending", "confirmed", "contradicted", "stale"]>>;
     confirmations: z.ZodDefault<z.ZodNumber>;
     confirming_agents: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
@@ -2324,6 +2825,14 @@ declare const SearchResult: z.ZodObject<{
     domain: string;
     category: "error" | "behavior" | "auth" | "rate_limit" | "format";
     summary: string;
+    impact_reports: {
+        agent_hash: string;
+        helpful: boolean;
+        reported_at: string;
+        actual_time_saved_seconds?: number | undefined;
+        task_succeeded?: boolean | undefined;
+        feedback?: string | undefined;
+    }[];
     confirmations: number;
     confirming_agents: string[];
     confidence: number;
@@ -2365,6 +2874,17 @@ declare const SearchResult: z.ZodObject<{
         max_length: z.ZodOptional<z.ZodNumber>;
         required: z.ZodOptional<z.ZodBoolean>;
     }, z.ZodTypeAny, "passthrough"> | undefined;
+    impact_estimate?: {
+        time_saved_seconds?: number | undefined;
+        success_rate_improvement?: number | undefined;
+        reasoning?: string | undefined;
+    } | undefined;
+    impact_stats?: {
+        total_uses: number;
+        helpful_count: number;
+        avg_time_saved_seconds?: number | undefined;
+        success_rate?: number | undefined;
+    } | undefined;
     expires_at?: string | undefined;
 }, {
     id: string;
@@ -2409,6 +2929,25 @@ declare const SearchResult: z.ZodObject<{
         max_length: z.ZodOptional<z.ZodNumber>;
         required: z.ZodOptional<z.ZodBoolean>;
     }, z.ZodTypeAny, "passthrough"> | undefined;
+    impact_estimate?: {
+        time_saved_seconds?: number | undefined;
+        success_rate_improvement?: number | undefined;
+        reasoning?: string | undefined;
+    } | undefined;
+    impact_reports?: {
+        agent_hash: string;
+        helpful: boolean;
+        reported_at: string;
+        actual_time_saved_seconds?: number | undefined;
+        task_succeeded?: boolean | undefined;
+        feedback?: string | undefined;
+    }[] | undefined;
+    impact_stats?: {
+        total_uses?: number | undefined;
+        helpful_count?: number | undefined;
+        avg_time_saved_seconds?: number | undefined;
+        success_rate?: number | undefined;
+    } | undefined;
     confirmations?: number | undefined;
     confirming_agents?: string[] | undefined;
     confidence?: number | undefined;
@@ -2519,6 +3058,57 @@ declare const SearchOutput: z.ZodObject<{
             max_length: z.ZodOptional<z.ZodNumber>;
             required: z.ZodOptional<z.ZodBoolean>;
         }, z.ZodTypeAny, "passthrough">>, z.ZodRecord<z.ZodString, z.ZodUnknown>]>>;
+        impact_estimate: z.ZodOptional<z.ZodObject<{
+            time_saved_seconds: z.ZodOptional<z.ZodNumber>;
+            success_rate_improvement: z.ZodOptional<z.ZodNumber>;
+            reasoning: z.ZodOptional<z.ZodString>;
+        }, "strip", z.ZodTypeAny, {
+            time_saved_seconds?: number | undefined;
+            success_rate_improvement?: number | undefined;
+            reasoning?: string | undefined;
+        }, {
+            time_saved_seconds?: number | undefined;
+            success_rate_improvement?: number | undefined;
+            reasoning?: string | undefined;
+        }>>;
+        impact_reports: z.ZodDefault<z.ZodArray<z.ZodObject<{
+            agent_hash: z.ZodString;
+            actual_time_saved_seconds: z.ZodOptional<z.ZodNumber>;
+            task_succeeded: z.ZodOptional<z.ZodBoolean>;
+            helpful: z.ZodBoolean;
+            feedback: z.ZodOptional<z.ZodString>;
+            reported_at: z.ZodString;
+        }, "strip", z.ZodTypeAny, {
+            agent_hash: string;
+            helpful: boolean;
+            reported_at: string;
+            actual_time_saved_seconds?: number | undefined;
+            task_succeeded?: boolean | undefined;
+            feedback?: string | undefined;
+        }, {
+            agent_hash: string;
+            helpful: boolean;
+            reported_at: string;
+            actual_time_saved_seconds?: number | undefined;
+            task_succeeded?: boolean | undefined;
+            feedback?: string | undefined;
+        }>, "many">>;
+        impact_stats: z.ZodOptional<z.ZodObject<{
+            total_uses: z.ZodDefault<z.ZodNumber>;
+            helpful_count: z.ZodDefault<z.ZodNumber>;
+            avg_time_saved_seconds: z.ZodOptional<z.ZodNumber>;
+            success_rate: z.ZodOptional<z.ZodNumber>;
+        }, "strip", z.ZodTypeAny, {
+            total_uses: number;
+            helpful_count: number;
+            avg_time_saved_seconds?: number | undefined;
+            success_rate?: number | undefined;
+        }, {
+            total_uses?: number | undefined;
+            helpful_count?: number | undefined;
+            avg_time_saved_seconds?: number | undefined;
+            success_rate?: number | undefined;
+        }>>;
         status: z.ZodDefault<z.ZodEnum<["pending", "confirmed", "contradicted", "stale"]>>;
         confirmations: z.ZodDefault<z.ZodNumber>;
         confirming_agents: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
@@ -2537,6 +3127,14 @@ declare const SearchOutput: z.ZodObject<{
         domain: string;
         category: "error" | "behavior" | "auth" | "rate_limit" | "format";
         summary: string;
+        impact_reports: {
+            agent_hash: string;
+            helpful: boolean;
+            reported_at: string;
+            actual_time_saved_seconds?: number | undefined;
+            task_succeeded?: boolean | undefined;
+            feedback?: string | undefined;
+        }[];
         confirmations: number;
         confirming_agents: string[];
         confidence: number;
@@ -2578,6 +3176,17 @@ declare const SearchOutput: z.ZodObject<{
             max_length: z.ZodOptional<z.ZodNumber>;
             required: z.ZodOptional<z.ZodBoolean>;
         }, z.ZodTypeAny, "passthrough"> | undefined;
+        impact_estimate?: {
+            time_saved_seconds?: number | undefined;
+            success_rate_improvement?: number | undefined;
+            reasoning?: string | undefined;
+        } | undefined;
+        impact_stats?: {
+            total_uses: number;
+            helpful_count: number;
+            avg_time_saved_seconds?: number | undefined;
+            success_rate?: number | undefined;
+        } | undefined;
         expires_at?: string | undefined;
     }, {
         id: string;
@@ -2622,6 +3231,25 @@ declare const SearchOutput: z.ZodObject<{
             max_length: z.ZodOptional<z.ZodNumber>;
             required: z.ZodOptional<z.ZodBoolean>;
         }, z.ZodTypeAny, "passthrough"> | undefined;
+        impact_estimate?: {
+            time_saved_seconds?: number | undefined;
+            success_rate_improvement?: number | undefined;
+            reasoning?: string | undefined;
+        } | undefined;
+        impact_reports?: {
+            agent_hash: string;
+            helpful: boolean;
+            reported_at: string;
+            actual_time_saved_seconds?: number | undefined;
+            task_succeeded?: boolean | undefined;
+            feedback?: string | undefined;
+        }[] | undefined;
+        impact_stats?: {
+            total_uses?: number | undefined;
+            helpful_count?: number | undefined;
+            avg_time_saved_seconds?: number | undefined;
+            success_rate?: number | undefined;
+        } | undefined;
         confirmations?: number | undefined;
         confirming_agents?: string[] | undefined;
         confidence?: number | undefined;
@@ -2639,6 +3267,14 @@ declare const SearchOutput: z.ZodObject<{
         domain: string;
         category: "error" | "behavior" | "auth" | "rate_limit" | "format";
         summary: string;
+        impact_reports: {
+            agent_hash: string;
+            helpful: boolean;
+            reported_at: string;
+            actual_time_saved_seconds?: number | undefined;
+            task_succeeded?: boolean | undefined;
+            feedback?: string | undefined;
+        }[];
         confirmations: number;
         confirming_agents: string[];
         confidence: number;
@@ -2680,6 +3316,17 @@ declare const SearchOutput: z.ZodObject<{
             max_length: z.ZodOptional<z.ZodNumber>;
             required: z.ZodOptional<z.ZodBoolean>;
         }, z.ZodTypeAny, "passthrough"> | undefined;
+        impact_estimate?: {
+            time_saved_seconds?: number | undefined;
+            success_rate_improvement?: number | undefined;
+            reasoning?: string | undefined;
+        } | undefined;
+        impact_stats?: {
+            total_uses: number;
+            helpful_count: number;
+            avg_time_saved_seconds?: number | undefined;
+            success_rate?: number | undefined;
+        } | undefined;
         expires_at?: string | undefined;
     }[];
     search_time_ms?: number | undefined;
@@ -2728,6 +3375,25 @@ declare const SearchOutput: z.ZodObject<{
             max_length: z.ZodOptional<z.ZodNumber>;
             required: z.ZodOptional<z.ZodBoolean>;
         }, z.ZodTypeAny, "passthrough"> | undefined;
+        impact_estimate?: {
+            time_saved_seconds?: number | undefined;
+            success_rate_improvement?: number | undefined;
+            reasoning?: string | undefined;
+        } | undefined;
+        impact_reports?: {
+            agent_hash: string;
+            helpful: boolean;
+            reported_at: string;
+            actual_time_saved_seconds?: number | undefined;
+            task_succeeded?: boolean | undefined;
+            feedback?: string | undefined;
+        }[] | undefined;
+        impact_stats?: {
+            total_uses?: number | undefined;
+            helpful_count?: number | undefined;
+            avg_time_saved_seconds?: number | undefined;
+            success_rate?: number | undefined;
+        } | undefined;
         confirmations?: number | undefined;
         confirming_agents?: string[] | undefined;
         confidence?: number | undefined;
@@ -2855,6 +3521,57 @@ declare const FailuresOutput: z.ZodObject<{
             max_length: z.ZodOptional<z.ZodNumber>;
             required: z.ZodOptional<z.ZodBoolean>;
         }, z.ZodTypeAny, "passthrough">>, z.ZodRecord<z.ZodString, z.ZodUnknown>]>>;
+        impact_estimate: z.ZodOptional<z.ZodObject<{
+            time_saved_seconds: z.ZodOptional<z.ZodNumber>;
+            success_rate_improvement: z.ZodOptional<z.ZodNumber>;
+            reasoning: z.ZodOptional<z.ZodString>;
+        }, "strip", z.ZodTypeAny, {
+            time_saved_seconds?: number | undefined;
+            success_rate_improvement?: number | undefined;
+            reasoning?: string | undefined;
+        }, {
+            time_saved_seconds?: number | undefined;
+            success_rate_improvement?: number | undefined;
+            reasoning?: string | undefined;
+        }>>;
+        impact_reports: z.ZodDefault<z.ZodArray<z.ZodObject<{
+            agent_hash: z.ZodString;
+            actual_time_saved_seconds: z.ZodOptional<z.ZodNumber>;
+            task_succeeded: z.ZodOptional<z.ZodBoolean>;
+            helpful: z.ZodBoolean;
+            feedback: z.ZodOptional<z.ZodString>;
+            reported_at: z.ZodString;
+        }, "strip", z.ZodTypeAny, {
+            agent_hash: string;
+            helpful: boolean;
+            reported_at: string;
+            actual_time_saved_seconds?: number | undefined;
+            task_succeeded?: boolean | undefined;
+            feedback?: string | undefined;
+        }, {
+            agent_hash: string;
+            helpful: boolean;
+            reported_at: string;
+            actual_time_saved_seconds?: number | undefined;
+            task_succeeded?: boolean | undefined;
+            feedback?: string | undefined;
+        }>, "many">>;
+        impact_stats: z.ZodOptional<z.ZodObject<{
+            total_uses: z.ZodDefault<z.ZodNumber>;
+            helpful_count: z.ZodDefault<z.ZodNumber>;
+            avg_time_saved_seconds: z.ZodOptional<z.ZodNumber>;
+            success_rate: z.ZodOptional<z.ZodNumber>;
+        }, "strip", z.ZodTypeAny, {
+            total_uses: number;
+            helpful_count: number;
+            avg_time_saved_seconds?: number | undefined;
+            success_rate?: number | undefined;
+        }, {
+            total_uses?: number | undefined;
+            helpful_count?: number | undefined;
+            avg_time_saved_seconds?: number | undefined;
+            success_rate?: number | undefined;
+        }>>;
         status: z.ZodDefault<z.ZodEnum<["pending", "confirmed", "contradicted", "stale"]>>;
         confirmations: z.ZodDefault<z.ZodNumber>;
         confirming_agents: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
@@ -2871,6 +3588,14 @@ declare const FailuresOutput: z.ZodObject<{
         domain: string;
         category: "error" | "behavior" | "auth" | "rate_limit" | "format";
         summary: string;
+        impact_reports: {
+            agent_hash: string;
+            helpful: boolean;
+            reported_at: string;
+            actual_time_saved_seconds?: number | undefined;
+            task_succeeded?: boolean | undefined;
+            feedback?: string | undefined;
+        }[];
         confirmations: number;
         confirming_agents: string[];
         confidence: number;
@@ -2911,6 +3636,17 @@ declare const FailuresOutput: z.ZodObject<{
             max_length: z.ZodOptional<z.ZodNumber>;
             required: z.ZodOptional<z.ZodBoolean>;
         }, z.ZodTypeAny, "passthrough"> | undefined;
+        impact_estimate?: {
+            time_saved_seconds?: number | undefined;
+            success_rate_improvement?: number | undefined;
+            reasoning?: string | undefined;
+        } | undefined;
+        impact_stats?: {
+            total_uses: number;
+            helpful_count: number;
+            avg_time_saved_seconds?: number | undefined;
+            success_rate?: number | undefined;
+        } | undefined;
         expires_at?: string | undefined;
     }, {
         id: string;
@@ -2954,6 +3690,25 @@ declare const FailuresOutput: z.ZodObject<{
             max_length: z.ZodOptional<z.ZodNumber>;
             required: z.ZodOptional<z.ZodBoolean>;
         }, z.ZodTypeAny, "passthrough"> | undefined;
+        impact_estimate?: {
+            time_saved_seconds?: number | undefined;
+            success_rate_improvement?: number | undefined;
+            reasoning?: string | undefined;
+        } | undefined;
+        impact_reports?: {
+            agent_hash: string;
+            helpful: boolean;
+            reported_at: string;
+            actual_time_saved_seconds?: number | undefined;
+            task_succeeded?: boolean | undefined;
+            feedback?: string | undefined;
+        }[] | undefined;
+        impact_stats?: {
+            total_uses?: number | undefined;
+            helpful_count?: number | undefined;
+            avg_time_saved_seconds?: number | undefined;
+            success_rate?: number | undefined;
+        } | undefined;
         confirmations?: number | undefined;
         confirming_agents?: string[] | undefined;
         confidence?: number | undefined;
@@ -2971,6 +3726,14 @@ declare const FailuresOutput: z.ZodObject<{
         domain: string;
         category: "error" | "behavior" | "auth" | "rate_limit" | "format";
         summary: string;
+        impact_reports: {
+            agent_hash: string;
+            helpful: boolean;
+            reported_at: string;
+            actual_time_saved_seconds?: number | undefined;
+            task_succeeded?: boolean | undefined;
+            feedback?: string | undefined;
+        }[];
         confirmations: number;
         confirming_agents: string[];
         confidence: number;
@@ -3011,6 +3774,17 @@ declare const FailuresOutput: z.ZodObject<{
             max_length: z.ZodOptional<z.ZodNumber>;
             required: z.ZodOptional<z.ZodBoolean>;
         }, z.ZodTypeAny, "passthrough"> | undefined;
+        impact_estimate?: {
+            time_saved_seconds?: number | undefined;
+            success_rate_improvement?: number | undefined;
+            reasoning?: string | undefined;
+        } | undefined;
+        impact_stats?: {
+            total_uses: number;
+            helpful_count: number;
+            avg_time_saved_seconds?: number | undefined;
+            success_rate?: number | undefined;
+        } | undefined;
         expires_at?: string | undefined;
     }[];
 }, {
@@ -3057,6 +3831,25 @@ declare const FailuresOutput: z.ZodObject<{
             max_length: z.ZodOptional<z.ZodNumber>;
             required: z.ZodOptional<z.ZodBoolean>;
         }, z.ZodTypeAny, "passthrough"> | undefined;
+        impact_estimate?: {
+            time_saved_seconds?: number | undefined;
+            success_rate_improvement?: number | undefined;
+            reasoning?: string | undefined;
+        } | undefined;
+        impact_reports?: {
+            agent_hash: string;
+            helpful: boolean;
+            reported_at: string;
+            actual_time_saved_seconds?: number | undefined;
+            task_succeeded?: boolean | undefined;
+            feedback?: string | undefined;
+        }[] | undefined;
+        impact_stats?: {
+            total_uses?: number | undefined;
+            helpful_count?: number | undefined;
+            avg_time_saved_seconds?: number | undefined;
+            success_rate?: number | undefined;
+        } | undefined;
         confirmations?: number | undefined;
         confirming_agents?: string[] | undefined;
         confidence?: number | undefined;
@@ -3302,6 +4095,57 @@ declare const SemanticSearchOutput: z.ZodObject<{
             max_length: z.ZodOptional<z.ZodNumber>;
             required: z.ZodOptional<z.ZodBoolean>;
         }, z.ZodTypeAny, "passthrough">>, z.ZodRecord<z.ZodString, z.ZodUnknown>]>>;
+        impact_estimate: z.ZodOptional<z.ZodObject<{
+            time_saved_seconds: z.ZodOptional<z.ZodNumber>;
+            success_rate_improvement: z.ZodOptional<z.ZodNumber>;
+            reasoning: z.ZodOptional<z.ZodString>;
+        }, "strip", z.ZodTypeAny, {
+            time_saved_seconds?: number | undefined;
+            success_rate_improvement?: number | undefined;
+            reasoning?: string | undefined;
+        }, {
+            time_saved_seconds?: number | undefined;
+            success_rate_improvement?: number | undefined;
+            reasoning?: string | undefined;
+        }>>;
+        impact_reports: z.ZodDefault<z.ZodArray<z.ZodObject<{
+            agent_hash: z.ZodString;
+            actual_time_saved_seconds: z.ZodOptional<z.ZodNumber>;
+            task_succeeded: z.ZodOptional<z.ZodBoolean>;
+            helpful: z.ZodBoolean;
+            feedback: z.ZodOptional<z.ZodString>;
+            reported_at: z.ZodString;
+        }, "strip", z.ZodTypeAny, {
+            agent_hash: string;
+            helpful: boolean;
+            reported_at: string;
+            actual_time_saved_seconds?: number | undefined;
+            task_succeeded?: boolean | undefined;
+            feedback?: string | undefined;
+        }, {
+            agent_hash: string;
+            helpful: boolean;
+            reported_at: string;
+            actual_time_saved_seconds?: number | undefined;
+            task_succeeded?: boolean | undefined;
+            feedback?: string | undefined;
+        }>, "many">>;
+        impact_stats: z.ZodOptional<z.ZodObject<{
+            total_uses: z.ZodDefault<z.ZodNumber>;
+            helpful_count: z.ZodDefault<z.ZodNumber>;
+            avg_time_saved_seconds: z.ZodOptional<z.ZodNumber>;
+            success_rate: z.ZodOptional<z.ZodNumber>;
+        }, "strip", z.ZodTypeAny, {
+            total_uses: number;
+            helpful_count: number;
+            avg_time_saved_seconds?: number | undefined;
+            success_rate?: number | undefined;
+        }, {
+            total_uses?: number | undefined;
+            helpful_count?: number | undefined;
+            avg_time_saved_seconds?: number | undefined;
+            success_rate?: number | undefined;
+        }>>;
         status: z.ZodDefault<z.ZodEnum<["pending", "confirmed", "contradicted", "stale"]>>;
         confirmations: z.ZodDefault<z.ZodNumber>;
         confirming_agents: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
@@ -3320,6 +4164,14 @@ declare const SemanticSearchOutput: z.ZodObject<{
         domain: string;
         category: "error" | "behavior" | "auth" | "rate_limit" | "format";
         summary: string;
+        impact_reports: {
+            agent_hash: string;
+            helpful: boolean;
+            reported_at: string;
+            actual_time_saved_seconds?: number | undefined;
+            task_succeeded?: boolean | undefined;
+            feedback?: string | undefined;
+        }[];
         confirmations: number;
         confirming_agents: string[];
         confidence: number;
@@ -3361,6 +4213,17 @@ declare const SemanticSearchOutput: z.ZodObject<{
             max_length: z.ZodOptional<z.ZodNumber>;
             required: z.ZodOptional<z.ZodBoolean>;
         }, z.ZodTypeAny, "passthrough"> | undefined;
+        impact_estimate?: {
+            time_saved_seconds?: number | undefined;
+            success_rate_improvement?: number | undefined;
+            reasoning?: string | undefined;
+        } | undefined;
+        impact_stats?: {
+            total_uses: number;
+            helpful_count: number;
+            avg_time_saved_seconds?: number | undefined;
+            success_rate?: number | undefined;
+        } | undefined;
         expires_at?: string | undefined;
     }, {
         id: string;
@@ -3405,6 +4268,25 @@ declare const SemanticSearchOutput: z.ZodObject<{
             max_length: z.ZodOptional<z.ZodNumber>;
             required: z.ZodOptional<z.ZodBoolean>;
         }, z.ZodTypeAny, "passthrough"> | undefined;
+        impact_estimate?: {
+            time_saved_seconds?: number | undefined;
+            success_rate_improvement?: number | undefined;
+            reasoning?: string | undefined;
+        } | undefined;
+        impact_reports?: {
+            agent_hash: string;
+            helpful: boolean;
+            reported_at: string;
+            actual_time_saved_seconds?: number | undefined;
+            task_succeeded?: boolean | undefined;
+            feedback?: string | undefined;
+        }[] | undefined;
+        impact_stats?: {
+            total_uses?: number | undefined;
+            helpful_count?: number | undefined;
+            avg_time_saved_seconds?: number | undefined;
+            success_rate?: number | undefined;
+        } | undefined;
         confirmations?: number | undefined;
         confirming_agents?: string[] | undefined;
         confidence?: number | undefined;
@@ -3422,6 +4304,14 @@ declare const SemanticSearchOutput: z.ZodObject<{
         domain: string;
         category: "error" | "behavior" | "auth" | "rate_limit" | "format";
         summary: string;
+        impact_reports: {
+            agent_hash: string;
+            helpful: boolean;
+            reported_at: string;
+            actual_time_saved_seconds?: number | undefined;
+            task_succeeded?: boolean | undefined;
+            feedback?: string | undefined;
+        }[];
         confirmations: number;
         confirming_agents: string[];
         confidence: number;
@@ -3463,6 +4353,17 @@ declare const SemanticSearchOutput: z.ZodObject<{
             max_length: z.ZodOptional<z.ZodNumber>;
             required: z.ZodOptional<z.ZodBoolean>;
         }, z.ZodTypeAny, "passthrough"> | undefined;
+        impact_estimate?: {
+            time_saved_seconds?: number | undefined;
+            success_rate_improvement?: number | undefined;
+            reasoning?: string | undefined;
+        } | undefined;
+        impact_stats?: {
+            total_uses: number;
+            helpful_count: number;
+            avg_time_saved_seconds?: number | undefined;
+            success_rate?: number | undefined;
+        } | undefined;
         expires_at?: string | undefined;
     }[];
     search_time_ms?: number | undefined;
@@ -3511,6 +4412,25 @@ declare const SemanticSearchOutput: z.ZodObject<{
             max_length: z.ZodOptional<z.ZodNumber>;
             required: z.ZodOptional<z.ZodBoolean>;
         }, z.ZodTypeAny, "passthrough"> | undefined;
+        impact_estimate?: {
+            time_saved_seconds?: number | undefined;
+            success_rate_improvement?: number | undefined;
+            reasoning?: string | undefined;
+        } | undefined;
+        impact_reports?: {
+            agent_hash: string;
+            helpful: boolean;
+            reported_at: string;
+            actual_time_saved_seconds?: number | undefined;
+            task_succeeded?: boolean | undefined;
+            feedback?: string | undefined;
+        }[] | undefined;
+        impact_stats?: {
+            total_uses?: number | undefined;
+            helpful_count?: number | undefined;
+            avg_time_saved_seconds?: number | undefined;
+            success_rate?: number | undefined;
+        } | undefined;
         confirmations?: number | undefined;
         confirming_agents?: string[] | undefined;
         confidence?: number | undefined;
@@ -3522,5 +4442,67 @@ declare const SemanticSearchOutput: z.ZodObject<{
     query_embedding_time_ms?: number | undefined;
 }>;
 type SemanticSearchOutput = SearchOutput;
+declare const ReportImpactInput: z.ZodObject<{
+    observation_id: z.ZodString;
+    helpful: z.ZodBoolean;
+    task_succeeded: z.ZodOptional<z.ZodBoolean>;
+    actual_time_saved_seconds: z.ZodOptional<z.ZodNumber>;
+    feedback: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    helpful: boolean;
+    observation_id: string;
+    actual_time_saved_seconds?: number | undefined;
+    task_succeeded?: boolean | undefined;
+    feedback?: string | undefined;
+}, {
+    helpful: boolean;
+    observation_id: string;
+    actual_time_saved_seconds?: number | undefined;
+    task_succeeded?: boolean | undefined;
+    feedback?: string | undefined;
+}>;
+type ReportImpactInput = z.infer<typeof ReportImpactInput>;
+declare const ReportImpactOutput: z.ZodObject<{
+    success: z.ZodBoolean;
+    observation_id: z.ZodString;
+    message: z.ZodString;
+    updated_stats: z.ZodOptional<z.ZodObject<{
+        total_uses: z.ZodNumber;
+        helpful_rate: z.ZodNumber;
+        avg_time_saved_seconds: z.ZodOptional<z.ZodNumber>;
+        success_rate: z.ZodOptional<z.ZodNumber>;
+    }, "strip", z.ZodTypeAny, {
+        total_uses: number;
+        helpful_rate: number;
+        avg_time_saved_seconds?: number | undefined;
+        success_rate?: number | undefined;
+    }, {
+        total_uses: number;
+        helpful_rate: number;
+        avg_time_saved_seconds?: number | undefined;
+        success_rate?: number | undefined;
+    }>>;
+}, "strip", z.ZodTypeAny, {
+    message: string;
+    observation_id: string;
+    success: boolean;
+    updated_stats?: {
+        total_uses: number;
+        helpful_rate: number;
+        avg_time_saved_seconds?: number | undefined;
+        success_rate?: number | undefined;
+    } | undefined;
+}, {
+    message: string;
+    observation_id: string;
+    success: boolean;
+    updated_stats?: {
+        total_uses: number;
+        helpful_rate: number;
+        avg_time_saved_seconds?: number | undefined;
+        success_rate?: number | undefined;
+    } | undefined;
+}>;
+type ReportImpactOutput = z.infer<typeof ReportImpactOutput>;
 
-export { AggregationKey, type AggregationResult, Aggregator, AuthData, BehaviorData, ConfirmInput, ConfirmOutput, ConfirmationConfig, ConfirmationEngine, ContradictionDetector, type ContradictionResult, CreateObservation, EmbeddingConfig, EmbeddingGenerator, ErrorData, FailuresInput, FailuresOutput, FileTransport, FormatData, FuzzyMatcher, JSONLStorage, LookupInput, LookupOutput, Observation, ObservationCategory, ObservationStatus, ObserveInput, ObserveOutput, PeerConfig, type ProcessObservationResult, Promoter, type PromotionResult, QdrantConfig, QdrantStorage, RateLimitData, SQLiteStorage, SearchInput, SearchOutput, SearchResult, SemanticSearchInput, SemanticSearchOutput, StatsInput, StatsOutput, Storage, type StorageQueryOptions, StoredObservation, StructuredData, SubstrateConfig, type SubstrateContext, type SyncBatch, SyncConfig, SyncCoordinator, type SyncResult, UrgencyLevel, UrgentSignalHandler, VectorSearch, type VectorSearchFilters, type VectorSearchOptions, type VectorSearchResult, configFromEnv, createDefaultConfig, createSubstrateServer };
+export { AggregationKey, type AggregationResult, Aggregator, AuthData, BehaviorData, ConfirmInput, ConfirmOutput, ConfirmationConfig, ConfirmationEngine, ContradictionDetector, type ContradictionResult, CreateObservation, EmbeddingConfig, EmbeddingGenerator, ErrorData, FailuresInput, FailuresOutput, FileTransport, FormatData, FuzzyMatcher, ImpactEstimate, ImpactReport, ImpactStats, JSONLStorage, LookupInput, LookupOutput, Observation, ObservationCategory, ObservationStatus, ObserveInput, ObserveOutput, PeerConfig, type ProcessObservationResult, Promoter, type PromotionResult, QdrantConfig, QdrantStorage, RateLimitData, ReportImpactInput, ReportImpactOutput, SQLiteStorage, SearchInput, SearchOutput, SearchResult, SemanticSearchInput, SemanticSearchOutput, StatsInput, StatsOutput, Storage, type StorageQueryOptions, StoredObservation, StructuredData, SubstrateConfig, type SubstrateContext, type SyncBatch, SyncConfig, SyncCoordinator, type SyncResult, UrgencyLevel, UrgentSignalHandler, VectorSearch, type VectorSearchFilters, type VectorSearchOptions, type VectorSearchResult, configFromEnv, createDefaultConfig, createSubstrateServer };

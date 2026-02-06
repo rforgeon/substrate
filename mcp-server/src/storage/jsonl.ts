@@ -1,4 +1,5 @@
-import { appendFileSync, readFileSync, existsSync } from 'node:fs';
+import { appendFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 import type { StoredObservation } from '../schemas/observation.js';
 
 /**
@@ -10,6 +11,11 @@ export class JSONLStorage {
 
   constructor(filePath: string) {
     this.filePath = filePath;
+    // Ensure the directory exists
+    const dir = dirname(filePath);
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
+    }
   }
 
   /**

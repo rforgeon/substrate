@@ -6,8 +6,8 @@ var stdio_js = require('@modelcontextprotocol/sdk/server/stdio.js');
 var mcp_js = require('@modelcontextprotocol/sdk/server/mcp.js');
 var Database = require('better-sqlite3');
 var fs = require('fs');
-var os = require('os');
 var path = require('path');
+var os = require('os');
 var jsClientRest = require('@qdrant/js-client-rest');
 var zod = require('zod');
 var http = require('http');
@@ -162,9 +162,38 @@ function down(db) {
   `);
 }
 
+// src/storage/migrations/002_impact_tracking.ts
+var impact_tracking_exports = {};
+__export(impact_tracking_exports, {
+  down: () => down2,
+  up: () => up2,
+  version: () => version2
+});
+var version2 = 2;
+function up2(db) {
+  db.exec(`
+    ALTER TABLE observations ADD COLUMN impact_estimate TEXT;
+    ALTER TABLE observations ADD COLUMN impact_reports TEXT NOT NULL DEFAULT '[]';
+    ALTER TABLE observations ADD COLUMN impact_stats TEXT;
+  `);
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_observations_impact
+      ON observations(json_extract(impact_stats, '$.total_uses'));
+  `);
+  db.exec(`
+    UPDATE metadata SET value = '2' WHERE key = 'schema_version';
+  `);
+}
+function down2(db) {
+  db.exec(`
+    UPDATE metadata SET value = '1' WHERE key = 'schema_version';
+  `);
+}
+
 // src/storage/migrations/index.ts
 var migrations = [
-  initial_exports
+  initial_exports,
+  impact_tracking_exports
 ];
 function getCurrentVersion(db) {
   try {
@@ -190,6 +219,10 @@ function runMigrations(db) {
 var SQLiteStorage = class {
   db;
   constructor(dbPath) {
+    const dir = path.dirname(dbPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
     this.db = new Database__default.default(dbPath);
     this.db.pragma("journal_mode = WAL");
     this.db.pragma("foreign_keys = ON");
@@ -203,9 +236,10 @@ var SQLiteStorage = class {
       INSERT INTO observations (
         id, agent_hash, domain, path, category, summary, structured_data,
         status, confirmations, confirming_agents, confidence, urgency, tags,
-        content_hash, vector_id, created_at, updated_at, expires_at
+        content_hash, vector_id, created_at, updated_at, expires_at,
+        impact_estimate, impact_reports, impact_stats
       ) VALUES (
-        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
       )
     `);
     stmt.run(
@@ -226,7 +260,10 @@ var SQLiteStorage = class {
       observation.vector_id ?? null,
       observation.created_at,
       observation.updated_at,
-      observation.expires_at ?? null
+      observation.expires_at ?? null,
+      observation.impact_estimate ? JSON.stringify(observation.impact_estimate) : null,
+      JSON.stringify(observation.impact_reports ?? []),
+      observation.impact_stats ? JSON.stringify(observation.impact_stats) : null
     );
   }
   getObservation(id) {
@@ -240,7 +277,8 @@ var SQLiteStorage = class {
     const stmt = this.db.prepare(`
       UPDATE observations SET
         status = ?, confirmations = ?, confirming_agents = ?, confidence = ?,
-        updated_at = ?, vector_id = ?
+        updated_at = ?, vector_id = ?,
+        impact_estimate = ?, impact_reports = ?, impact_stats = ?
       WHERE id = ?
     `);
     stmt.run(
@@ -250,8 +288,42 @@ var SQLiteStorage = class {
       updated.confidence,
       updated.updated_at,
       updated.vector_id ?? null,
+      updated.impact_estimate ? JSON.stringify(updated.impact_estimate) : null,
+      JSON.stringify(updated.impact_reports ?? []),
+      updated.impact_stats ? JSON.stringify(updated.impact_stats) : null,
       id
     );
+  }
+  /**
+   * Add an impact report to an observation and update aggregated stats
+   */
+  addImpactReport(id, report) {
+    const observation = this.getObservation(id);
+    if (!observation) {
+      return { success: false };
+    }
+    const reports = observation.impact_reports ?? [];
+    reports.push({
+      ...report,
+      reported_at: (/* @__PURE__ */ new Date()).toISOString()
+    });
+    const totalUses = reports.length;
+    const helpfulCount = reports.filter((r) => r.helpful).length;
+    const successReports = reports.filter((r) => r.task_succeeded !== void 0);
+    const successCount = successReports.filter((r) => r.task_succeeded).length;
+    const timeReports = reports.filter((r) => r.actual_time_saved_seconds !== void 0);
+    const avgTimeSaved = timeReports.length > 0 ? timeReports.reduce((sum, r) => sum + (r.actual_time_saved_seconds ?? 0), 0) / timeReports.length : void 0;
+    const updatedStats = {
+      total_uses: totalUses,
+      helpful_count: helpfulCount,
+      avg_time_saved_seconds: avgTimeSaved,
+      success_rate: successReports.length > 0 ? successCount / successReports.length * 100 : void 0
+    };
+    this.updateObservation(id, {
+      impact_reports: reports,
+      impact_stats: updatedStats
+    });
+    return { success: true, updated_stats: updatedStats };
   }
   queryObservations(options) {
     let sql = "SELECT * FROM observations WHERE 1=1";
@@ -443,6 +515,9 @@ var SQLiteStorage = class {
       category: row["category"],
       summary: row["summary"],
       structured_data: row["structured_data"] ? JSON.parse(row["structured_data"]) : void 0,
+      impact_estimate: row["impact_estimate"] ? JSON.parse(row["impact_estimate"]) : void 0,
+      impact_reports: row["impact_reports"] ? JSON.parse(row["impact_reports"]) : [],
+      impact_stats: row["impact_stats"] ? JSON.parse(row["impact_stats"]) : void 0,
       status: row["status"],
       confirmations: row["confirmations"],
       confirming_agents: JSON.parse(row["confirming_agents"]),
@@ -480,6 +555,10 @@ var JSONLStorage = class {
   filePath;
   constructor(filePath) {
     this.filePath = filePath;
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
   }
   /**
    * Append an observation to the log
@@ -631,6 +710,12 @@ var Storage = class {
    */
   getFailures(options) {
     return this.sqlite.getFailures(options);
+  }
+  /**
+   * Add an impact report to an observation
+   */
+  addImpactReport(id, report) {
+    return this.sqlite.addImpactReport(id, report);
   }
   /**
    * Find an existing confirmation group
@@ -2098,6 +2183,34 @@ var StructuredData = zod.z.union([
   zod.z.record(zod.z.unknown())
   // Allow arbitrary data for flexibility
 ]);
+var ImpactEstimate = zod.z.object({
+  time_saved_seconds: zod.z.number().min(0).optional(),
+  // Estimated seconds saved
+  success_rate_improvement: zod.z.number().min(0).max(100).optional(),
+  // % improvement (0-100)
+  reasoning: zod.z.string().optional()
+  // Why this estimate
+});
+var ImpactReport = zod.z.object({
+  agent_hash: zod.z.string(),
+  actual_time_saved_seconds: zod.z.number().optional(),
+  task_succeeded: zod.z.boolean().optional(),
+  helpful: zod.z.boolean(),
+  // Was this advice helpful?
+  feedback: zod.z.string().optional(),
+  // Optional feedback
+  reported_at: zod.z.string().datetime()
+});
+var ImpactStats = zod.z.object({
+  total_uses: zod.z.number().default(0),
+  // Times this advice was used
+  helpful_count: zod.z.number().default(0),
+  // Times marked helpful
+  avg_time_saved_seconds: zod.z.number().optional(),
+  // Average actual time saved
+  success_rate: zod.z.number().min(0).max(100).optional()
+  // Actual success rate when used
+});
 var Observation = zod.z.object({
   // Identity
   id: zod.z.string(),
@@ -2114,6 +2227,13 @@ var Observation = zod.z.object({
   summary: zod.z.string(),
   // Human-readable summary
   structured_data: StructuredData.optional(),
+  // Impact metrics
+  impact_estimate: ImpactEstimate.optional(),
+  // Observer's estimate
+  impact_reports: zod.z.array(ImpactReport).default([]),
+  // Reports from users
+  impact_stats: ImpactStats.optional(),
+  // Aggregated statistics
   // Confirmation tracking
   status: ObservationStatus.default("pending"),
   confirmations: zod.z.number().default(1),
@@ -2134,6 +2254,7 @@ var CreateObservation = zod.z.object({
   category: ObservationCategory,
   summary: zod.z.string().min(1).max(2e3),
   structured_data: StructuredData.optional(),
+  impact_estimate: ImpactEstimate.optional(),
   urgency: UrgencyLevel.optional(),
   tags: zod.z.array(zod.z.string()).optional(),
   expires_at: zod.z.string().datetime().optional()
@@ -2158,6 +2279,11 @@ var ObserveInput = zod.z.object({
   category: ObservationCategory.describe("Category of observation"),
   summary: zod.z.string().min(1).max(2e3).describe("Human-readable description of the observation"),
   structured_data: zod.z.record(zod.z.unknown()).optional().describe("Structured data relevant to the category"),
+  impact_estimate: zod.z.object({
+    time_saved_seconds: zod.z.number().min(0).optional().describe("Estimated seconds this advice will save future agents"),
+    success_rate_improvement: zod.z.number().min(0).max(100).optional().describe("Estimated % improvement in task success rate (0-100)"),
+    reasoning: zod.z.string().optional().describe("Brief explanation of the estimate")
+  }).optional().describe("Estimated impact of this advice for future agents"),
   urgency: UrgencyLevel.optional().describe("Urgency level for sync prioritization"),
   tags: zod.z.array(zod.z.string()).optional().describe("Tags for filtering and organization")
 });
@@ -2240,19 +2366,42 @@ var StatsOutput = zod.z.object({
 });
 var SemanticSearchInput = SearchInput;
 var SemanticSearchOutput = SearchOutput;
+var ReportImpactInput = zod.z.object({
+  observation_id: zod.z.string().describe("ID of the observation whose advice was used"),
+  helpful: zod.z.boolean().describe("Was this advice helpful for completing the task?"),
+  task_succeeded: zod.z.boolean().optional().describe("Did the task succeed using this advice?"),
+  actual_time_saved_seconds: zod.z.number().min(0).optional().describe("Actual time saved in seconds"),
+  feedback: zod.z.string().max(500).optional().describe("Optional feedback about the advice")
+});
+var ReportImpactOutput = zod.z.object({
+  success: zod.z.boolean(),
+  observation_id: zod.z.string(),
+  message: zod.z.string(),
+  updated_stats: zod.z.object({
+    total_uses: zod.z.number(),
+    helpful_rate: zod.z.number(),
+    avg_time_saved_seconds: zod.z.number().optional(),
+    success_rate: zod.z.number().optional()
+  }).optional()
+});
 
 // src/tools/observe.ts
 init_hash();
 function registerObserveTool(server, context) {
   server.tool(
     "substrate_observe",
-    "Record an observation about an interface, API, or webpage for future agents",
+    "Record an observation about an interface, API, or webpage for future agents. Include impact estimates to help prioritize valuable advice.",
     {
       domain: zod.z.string().describe('The domain being observed (e.g., "api.example.com")'),
       path: zod.z.string().optional().describe('The specific path or endpoint (e.g., "/v2/checkout")'),
       category: zod.z.enum(["behavior", "error", "auth", "rate_limit", "format"]).describe("Category of observation"),
       summary: zod.z.string().describe("Human-readable description of the observation"),
       structured_data: zod.z.record(zod.z.unknown()).optional().describe("Structured data relevant to the category"),
+      impact_estimate: zod.z.object({
+        time_saved_seconds: zod.z.number().min(0).optional().describe("Estimated seconds this advice saves (e.g., 300 = 5 minutes)"),
+        success_rate_improvement: zod.z.number().min(0).max(100).optional().describe("Estimated % improvement in task success (e.g., 25 = 25% more likely to succeed)"),
+        reasoning: zod.z.string().optional().describe("Brief explanation of the estimate")
+      }).optional().describe("Estimated impact of this advice for future agents"),
       urgency: zod.z.enum(["normal", "high", "critical"]).optional().describe("Urgency level for sync prioritization"),
       tags: zod.z.array(zod.z.string()).optional().describe("Tags for filtering and organization")
     },
@@ -2293,6 +2442,8 @@ function registerObserveTool(server, context) {
           category: input.category,
           summary: input.summary,
           structured_data: input.structured_data,
+          impact_estimate: input.impact_estimate,
+          impact_reports: [],
           status: "pending",
           confirmations: 1,
           confirming_agents: [context.agentHash],
@@ -2647,6 +2798,63 @@ function registerSemanticSearchTool(server, context) {
     }
   );
 }
+function registerReportImpactTool(server, context) {
+  server.tool(
+    "substrate_report_impact",
+    "Report the actual impact after using advice from an observation. Helps improve advice quality by tracking what works.",
+    {
+      observation_id: zod.z.string().describe("ID of the observation whose advice was used"),
+      helpful: zod.z.boolean().describe("Was this advice helpful for completing the task?"),
+      task_succeeded: zod.z.boolean().optional().describe("Did the task succeed using this advice?"),
+      actual_time_saved_seconds: zod.z.number().min(0).optional().describe("Actual time saved in seconds"),
+      feedback: zod.z.string().max(500).optional().describe("Optional feedback about the advice")
+    },
+    async (args) => {
+      try {
+        const { observation_id, helpful, task_succeeded, actual_time_saved_seconds, feedback } = args;
+        const result = context.storage.addImpactReport(observation_id, {
+          agent_hash: context.agentHash,
+          helpful,
+          task_succeeded,
+          actual_time_saved_seconds,
+          feedback
+        });
+        if (!result.success) {
+          const output2 = {
+            success: false,
+            observation_id,
+            message: "Observation not found"
+          };
+          return {
+            content: [{ type: "text", text: JSON.stringify(output2, null, 2) }]
+          };
+        }
+        const stats = result.updated_stats;
+        const output = {
+          success: true,
+          observation_id,
+          message: `Impact reported. ${helpful ? "Marked as helpful." : "Marked as not helpful."} Total uses: ${stats?.total_uses ?? 0}`,
+          updated_stats: stats ? {
+            total_uses: stats.total_uses,
+            helpful_rate: stats.helpful_count / stats.total_uses * 100,
+            avg_time_saved_seconds: stats.avg_time_saved_seconds,
+            success_rate: stats.success_rate
+          } : void 0
+        };
+        context.logger.info(`Impact reported for ${observation_id}: helpful=${helpful}`);
+        return {
+          content: [{ type: "text", text: JSON.stringify(output, null, 2) }]
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        context.logger.error("Report impact failed:", message);
+        return {
+          content: [{ type: "text", text: JSON.stringify({ error: message }, null, 2) }]
+        };
+      }
+    }
+  );
+}
 
 // src/resources/domains.ts
 function registerDomainsResource(server, context) {
@@ -2897,6 +3105,7 @@ async function createSubstrateServer(userConfig) {
   registerConfirmTool(server, context);
   registerStatsTool(server, context);
   registerSemanticSearchTool(server, context);
+  registerReportImpactTool(server, context);
   registerDomainsResource(server, context);
   registerDomainResource(server, context);
   registerFailuresResource(server, context);
@@ -3052,6 +3261,9 @@ exports.FailuresOutput = FailuresOutput;
 exports.FileTransport = FileTransport;
 exports.FormatData = FormatData;
 exports.FuzzyMatcher = FuzzyMatcher;
+exports.ImpactEstimate = ImpactEstimate;
+exports.ImpactReport = ImpactReport;
+exports.ImpactStats = ImpactStats;
 exports.JSONLStorage = JSONLStorage;
 exports.LookupInput = LookupInput;
 exports.LookupOutput = LookupOutput;
@@ -3065,6 +3277,8 @@ exports.Promoter = Promoter;
 exports.QdrantConfig = QdrantConfig;
 exports.QdrantStorage = QdrantStorage;
 exports.RateLimitData = RateLimitData;
+exports.ReportImpactInput = ReportImpactInput;
+exports.ReportImpactOutput = ReportImpactOutput;
 exports.SQLiteStorage = SQLiteStorage;
 exports.SearchInput = SearchInput;
 exports.SearchOutput = SearchOutput;
