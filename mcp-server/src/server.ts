@@ -16,6 +16,7 @@ import { registerFailuresTool } from './tools/failures.js';
 import { registerConfirmTool } from './tools/confirm.js';
 import { registerStatsTool } from './tools/stats.js';
 import { registerSemanticSearchTool } from './tools/semantic-search.js';
+import { registerReportImpactTool } from './tools/report-impact.js';
 
 // Resource handlers
 import { registerDomainsResource } from './resources/domains.js';
@@ -116,6 +117,7 @@ export async function createSubstrateServer(
   registerConfirmTool(server, context);
   registerStatsTool(server, context);
   registerSemanticSearchTool(server, context);
+  registerReportImpactTool(server, context);
 
   // Register resources
   registerDomainsResource(server, context);

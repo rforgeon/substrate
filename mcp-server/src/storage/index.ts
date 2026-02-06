@@ -91,6 +91,19 @@ export class Storage {
   }
 
   /**
+   * Add an impact report to an observation
+   */
+  addImpactReport(id: string, report: {
+    agent_hash: string;
+    helpful: boolean;
+    task_succeeded?: boolean;
+    actual_time_saved_seconds?: number;
+    feedback?: string;
+  }) {
+    return this.sqlite.addImpactReport(id, report);
+  }
+
+  /**
    * Find an existing confirmation group
    */
   findConfirmationGroup(domain: string, path: string | undefined, category: string, contentHash: string) {

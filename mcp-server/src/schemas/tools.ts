@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ObservationCategory, UrgencyLevel, Observation, ObservationStatus } from './observation.js';
+import { ObservationCategory, UrgencyLevel, Observation, ObservationStatus, ImpactEstimate } from './observation.js';
 
 // ============================================================================
 // substrate_observe - Record a new observation
@@ -11,6 +11,11 @@ export const ObserveInput = z.object({
   category: ObservationCategory.describe('Category of observation'),
   summary: z.string().min(1).max(2000).describe('Human-readable description of the observation'),
   structured_data: z.record(z.unknown()).optional().describe('Structured data relevant to the category'),
+  impact_estimate: z.object({
+    time_saved_seconds: z.number().min(0).optional().describe('Estimated seconds this advice will save future agents'),
+    success_rate_improvement: z.number().min(0).max(100).optional().describe('Estimated % improvement in task success rate (0-100)'),
+    reasoning: z.string().optional().describe('Brief explanation of the estimate'),
+  }).optional().describe('Estimated impact of this advice for future agents'),
   urgency: UrgencyLevel.optional().describe('Urgency level for sync prioritization'),
   tags: z.array(z.string()).optional().describe('Tags for filtering and organization'),
 });
@@ -159,3 +164,31 @@ export type SemanticSearchInput = SearchInput;
 
 export const SemanticSearchOutput = SearchOutput;
 export type SemanticSearchOutput = SearchOutput;
+
+// ============================================================================
+// substrate_report_impact - Report the actual impact after using advice
+// ============================================================================
+
+export const ReportImpactInput = z.object({
+  observation_id: z.string().describe('ID of the observation whose advice was used'),
+  helpful: z.boolean().describe('Was this advice helpful for completing the task?'),
+  task_succeeded: z.boolean().optional().describe('Did the task succeed using this advice?'),
+  actual_time_saved_seconds: z.number().min(0).optional().describe('Actual time saved in seconds'),
+  feedback: z.string().max(500).optional().describe('Optional feedback about the advice'),
+});
+
+export type ReportImpactInput = z.infer<typeof ReportImpactInput>;
+
+export const ReportImpactOutput = z.object({
+  success: z.boolean(),
+  observation_id: z.string(),
+  message: z.string(),
+  updated_stats: z.object({
+    total_uses: z.number(),
+    helpful_rate: z.number(),
+    avg_time_saved_seconds: z.number().optional(),
+    success_rate: z.number().optional(),
+  }).optional(),
+});
+
+export type ReportImpactOutput = z.infer<typeof ReportImpactOutput>;

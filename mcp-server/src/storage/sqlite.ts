@@ -59,9 +59,10 @@ export class SQLiteStorage {
       INSERT INTO observations (
         id, agent_hash, domain, path, category, summary, structured_data,
         status, confirmations, confirming_agents, confidence, urgency, tags,
-        content_hash, vector_id, created_at, updated_at, expires_at
+        content_hash, vector_id, created_at, updated_at, expires_at,
+        impact_estimate, impact_reports, impact_stats
       ) VALUES (
-        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
       )
     `);
 
@@ -83,7 +84,10 @@ export class SQLiteStorage {
       observation.vector_id ?? null,
       observation.created_at,
       observation.updated_at,
-      observation.expires_at ?? null
+      observation.expires_at ?? null,
+      observation.impact_estimate ? JSON.stringify(observation.impact_estimate) : null,
+      JSON.stringify(observation.impact_reports ?? []),
+      observation.impact_stats ? JSON.stringify(observation.impact_stats) : null
     );
   }
 
@@ -101,7 +105,8 @@ export class SQLiteStorage {
     const stmt = this.db.prepare(`
       UPDATE observations SET
         status = ?, confirmations = ?, confirming_agents = ?, confidence = ?,
-        updated_at = ?, vector_id = ?
+        updated_at = ?, vector_id = ?,
+        impact_estimate = ?, impact_reports = ?, impact_stats = ?
       WHERE id = ?
     `);
 
@@ -112,8 +117,60 @@ export class SQLiteStorage {
       updated.confidence,
       updated.updated_at,
       updated.vector_id ?? null,
+      updated.impact_estimate ? JSON.stringify(updated.impact_estimate) : null,
+      JSON.stringify(updated.impact_reports ?? []),
+      updated.impact_stats ? JSON.stringify(updated.impact_stats) : null,
       id
     );
+  }
+
+  /**
+   * Add an impact report to an observation and update aggregated stats
+   */
+  addImpactReport(id: string, report: {
+    agent_hash: string;
+    helpful: boolean;
+    task_succeeded?: boolean;
+    actual_time_saved_seconds?: number;
+    feedback?: string;
+  }): { success: boolean; updated_stats?: StoredObservation['impact_stats'] } {
+    const observation = this.getObservation(id);
+    if (!observation) {
+      return { success: false };
+    }
+
+    // Add the report
+    const reports = observation.impact_reports ?? [];
+    reports.push({
+      ...report,
+      reported_at: new Date().toISOString(),
+    });
+
+    // Calculate updated stats
+    const totalUses = reports.length;
+    const helpfulCount = reports.filter(r => r.helpful).length;
+    const successReports = reports.filter(r => r.task_succeeded !== undefined);
+    const successCount = successReports.filter(r => r.task_succeeded).length;
+    const timeReports = reports.filter(r => r.actual_time_saved_seconds !== undefined);
+    const avgTimeSaved = timeReports.length > 0
+      ? timeReports.reduce((sum, r) => sum + (r.actual_time_saved_seconds ?? 0), 0) / timeReports.length
+      : undefined;
+
+    const updatedStats = {
+      total_uses: totalUses,
+      helpful_count: helpfulCount,
+      avg_time_saved_seconds: avgTimeSaved,
+      success_rate: successReports.length > 0
+        ? (successCount / successReports.length) * 100
+        : undefined,
+    };
+
+    this.updateObservation(id, {
+      impact_reports: reports,
+      impact_stats: updatedStats,
+    });
+
+    return { success: true, updated_stats: updatedStats };
   }
 
   queryObservations(options: QueryOptions): StoredObservation[] {
@@ -365,6 +422,9 @@ export class SQLiteStorage {
       category: row['category'] as ObservationCategory,
       summary: row['summary'] as string,
       structured_data: row['structured_data'] ? JSON.parse(row['structured_data'] as string) : undefined,
+      impact_estimate: row['impact_estimate'] ? JSON.parse(row['impact_estimate'] as string) : undefined,
+      impact_reports: row['impact_reports'] ? JSON.parse(row['impact_reports'] as string) : [],
+      impact_stats: row['impact_stats'] ? JSON.parse(row['impact_stats'] as string) : undefined,
       status: row['status'] as ObservationStatus,
       confirmations: row['confirmations'] as number,
       confirming_agents: JSON.parse(row['confirming_agents'] as string),

@@ -85,6 +85,37 @@ export const StructuredData = z.union([
 
 export type StructuredData = z.infer<typeof StructuredData>;
 
+// Impact metrics - estimated by the observing agent
+export const ImpactEstimate = z.object({
+  time_saved_seconds: z.number().min(0).optional(),      // Estimated seconds saved
+  success_rate_improvement: z.number().min(0).max(100).optional(), // % improvement (0-100)
+  reasoning: z.string().optional(),                       // Why this estimate
+});
+
+export type ImpactEstimate = z.infer<typeof ImpactEstimate>;
+
+// Impact report - reported by an agent that used the advice
+export const ImpactReport = z.object({
+  agent_hash: z.string(),
+  actual_time_saved_seconds: z.number().optional(),
+  task_succeeded: z.boolean().optional(),
+  helpful: z.boolean(),                                   // Was this advice helpful?
+  feedback: z.string().optional(),                        // Optional feedback
+  reported_at: z.string().datetime(),
+});
+
+export type ImpactReport = z.infer<typeof ImpactReport>;
+
+// Aggregated impact statistics
+export const ImpactStats = z.object({
+  total_uses: z.number().default(0),                      // Times this advice was used
+  helpful_count: z.number().default(0),                   // Times marked helpful
+  avg_time_saved_seconds: z.number().optional(),          // Average actual time saved
+  success_rate: z.number().min(0).max(100).optional(),    // Actual success rate when used
+});
+
+export type ImpactStats = z.infer<typeof ImpactStats>;
+
 // Core observation schema
 export const Observation = z.object({
   // Identity
@@ -99,6 +130,11 @@ export const Observation = z.object({
   category: ObservationCategory,
   summary: z.string(),                   // Human-readable summary
   structured_data: StructuredData.optional(),
+
+  // Impact metrics
+  impact_estimate: ImpactEstimate.optional(),             // Observer's estimate
+  impact_reports: z.array(ImpactReport).default([]),      // Reports from users
+  impact_stats: ImpactStats.optional(),                   // Aggregated statistics
 
   // Confirmation tracking
   status: ObservationStatus.default('pending'),
@@ -125,6 +161,7 @@ export const CreateObservation = z.object({
   category: ObservationCategory,
   summary: z.string().min(1).max(2000),
   structured_data: StructuredData.optional(),
+  impact_estimate: ImpactEstimate.optional(),
   urgency: UrgencyLevel.optional(),
   tags: z.array(z.string()).optional(),
   expires_at: z.string().datetime().optional(),

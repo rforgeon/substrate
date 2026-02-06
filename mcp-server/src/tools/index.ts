@@ -5,3 +5,4 @@ export { registerFailuresTool } from './failures.js';
 export { registerConfirmTool } from './confirm.js';
 export { registerStatsTool } from './stats.js';
 export { registerSemanticSearchTool } from './semantic-search.js';
+export { registerReportImpactTool } from './report-impact.js';

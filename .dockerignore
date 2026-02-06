@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+.git
+.gitignore
+**/*.md
+!mcp-server/skill/**/*.md
+.env
+.env.*
+!.env.example
+**/test
+**/*.test.ts
+**/coverage
+**/.nyc_output
+Substrate_Architecture_Spec.md

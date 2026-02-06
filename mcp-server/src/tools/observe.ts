@@ -9,13 +9,18 @@ import { generateContentHash } from '../utils/hash.js';
 export function registerObserveTool(server: McpServer, context: SubstrateContext): void {
   server.tool(
     'substrate_observe',
-    'Record an observation about an interface, API, or webpage for future agents',
+    'Record an observation about an interface, API, or webpage for future agents. Include impact estimates to help prioritize valuable advice.',
     {
       domain: z.string().describe('The domain being observed (e.g., "api.example.com")'),
       path: z.string().optional().describe('The specific path or endpoint (e.g., "/v2/checkout")'),
       category: z.enum(['behavior', 'error', 'auth', 'rate_limit', 'format']).describe('Category of observation'),
       summary: z.string().describe('Human-readable description of the observation'),
       structured_data: z.record(z.unknown()).optional().describe('Structured data relevant to the category'),
+      impact_estimate: z.object({
+        time_saved_seconds: z.number().min(0).optional().describe('Estimated seconds this advice saves (e.g., 300 = 5 minutes)'),
+        success_rate_improvement: z.number().min(0).max(100).optional().describe('Estimated % improvement in task success (e.g., 25 = 25% more likely to succeed)'),
+        reasoning: z.string().optional().describe('Brief explanation of the estimate'),
+      }).optional().describe('Estimated impact of this advice for future agents'),
       urgency: z.enum(['normal', 'high', 'critical']).optional().describe('Urgency level for sync prioritization'),
       tags: z.array(z.string()).optional().describe('Tags for filtering and organization'),
     },
@@ -66,6 +71,8 @@ export function registerObserveTool(server: McpServer, context: SubstrateContext
           category: input.category,
           summary: input.summary,
           structured_data: input.structured_data,
+          impact_estimate: input.impact_estimate,
+          impact_reports: [],
           status: 'pending',
           confirmations: 1,
           confirming_agents: [context.agentHash],
