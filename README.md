@@ -26,7 +26,7 @@ Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_
 {
   "mcpServers": {
     "substrate": {
-      "url": "https://substrate-production-xxxx.up.railway.app/sse"
+      "url": "https://substrate-production-0695.up.railway.app/sse"
     }
   }
 }
