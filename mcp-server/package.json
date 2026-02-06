@@ -1,5 +1,5 @@
 {
-  "name": "@altrym/mcp-server",
+  "name": "@altrym/substrate",
   "version": "0.2.0",
   "description": "MCP server for shared environmental knowledge between AI agents",
   "type": "module",
@@ -14,7 +14,7 @@
     }
   },
   "bin": {
-    "substrate-mcp": "./dist/index.js"
+    "substrate": "./dist/index.js"
   },
   "files": [
     "dist",
