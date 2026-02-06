@@ -1,4 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import { URL } from 'node:url';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 
@@ -19,7 +20,8 @@ export function createSSEServer(
   const { port, host = '0.0.0.0', apiKey, corsOrigins = ['*'] } = options;
 
   let httpServer: ReturnType<typeof createServer> | null = null;
-  let sseTransport: SSEServerTransport | null = null;
+  // Store transports by session ID for multiple concurrent connections
+  const transports = new Map<string, SSEServerTransport>();
 
   const setCorsHeaders = (res: ServerResponse) => {
     res.setHeader('Access-Control-Allow-Origin', corsOrigins.join(', '));
@@ -42,6 +44,10 @@ export function createSSEServer(
   const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
     setCorsHeaders(res);
 
+    // Parse URL to handle query parameters
+    const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
+    const pathname = url.pathname;
+
     // Handle CORS preflight
     if (req.method === 'OPTIONS') {
       res.writeHead(204);
@@ -50,7 +56,7 @@ export function createSSEServer(
     }
 
     // Health check endpoint
-    if (req.url === '/health' && req.method === 'GET') {
+    if (pathname === '/health' && req.method === 'GET') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ status: 'ok', transport: 'sse' }));
       return;
@@ -64,16 +70,45 @@ export function createSSEServer(
     }
 
     // SSE endpoint for MCP
-    if (req.url === '/sse' && req.method === 'GET') {
+    if (pathname === '/sse' && req.method === 'GET') {
       // Create new transport for this connection
-      sseTransport = new SSEServerTransport('/message', res);
-      await mcpServer.connect(sseTransport);
+      const transport = new SSEServerTransport('/message', res);
+
+      // Store transport by session ID once available
+      transport.onclose = () => {
+        // Clean up when connection closes
+        for (const [id, t] of transports.entries()) {
+          if (t === transport) {
+            transports.delete(id);
+            break;
+          }
+        }
+      };
+
+      // Generate a session ID and store the transport
+      const sessionId = crypto.randomUUID();
+      transports.set(sessionId, transport);
+
+      await mcpServer.connect(transport);
       return;
     }
 
     // Message endpoint for client-to-server messages
-    if (req.url === '/message' && req.method === 'POST') {
-      if (!sseTransport) {
+    if (pathname === '/message' && req.method === 'POST') {
+      // Get session ID from query param
+      const sessionId = url.searchParams.get('sessionId');
+
+      // Try to find the transport - check by sessionId first, then fall back to any active transport
+      let transport: SSEServerTransport | undefined;
+      if (sessionId) {
+        transport = transports.get(sessionId);
+      }
+      // Fall back to most recent transport if no sessionId or not found
+      if (!transport && transports.size > 0) {
+        transport = Array.from(transports.values()).pop();
+      }
+
+      if (!transport) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'No active SSE connection' }));
         return;
@@ -83,7 +118,7 @@ export function createSSEServer(
       req.on('data', chunk => { body += chunk; });
       req.on('end', async () => {
         try {
-          await sseTransport!.handlePostMessage(req, res, body);
+          await transport!.handlePostMessage(req, res, body);
         } catch (error) {
           console.error('Error handling message:', error);
           if (!res.headersSent) {
