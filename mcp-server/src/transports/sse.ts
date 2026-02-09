@@ -8,6 +8,8 @@ export interface SSEServerOptions {
   host?: string;
   apiKey?: string;
   corsOrigins?: string[];
+  onDumpRequest?: () => Promise<unknown>;
+  onStatsRequest?: () => Promise<unknown>;
 }
 
 /**
@@ -17,7 +19,7 @@ export function createSSEServer(
   mcpServer: McpServer,
   options: SSEServerOptions
 ): { start: () => Promise<void>; stop: () => void } {
-  const { port, host = '0.0.0.0', apiKey, corsOrigins = ['*'] } = options;
+  const { port, host = '0.0.0.0', apiKey, corsOrigins = ['*'], onDumpRequest, onStatsRequest } = options;
 
   let httpServer: ReturnType<typeof createServer> | null = null;
   // Store transports by session ID for multiple concurrent connections
@@ -59,6 +61,42 @@ export function createSSEServer(
     if (pathname === '/health' && req.method === 'GET') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ status: 'ok', transport: 'sse' }));
+      return;
+    }
+
+    // Admin data dump endpoint
+    if (pathname === '/admin/dump' && req.method === 'GET') {
+      if (onDumpRequest) {
+        try {
+          const data = await onDumpRequest();
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(data, null, 2));
+        } catch (error) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Failed to dump data' }));
+        }
+        return;
+      }
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Dump not configured' }));
+      return;
+    }
+
+    // Admin stats endpoint
+    if (pathname === '/admin/stats' && req.method === 'GET') {
+      if (onStatsRequest) {
+        try {
+          const stats = await onStatsRequest();
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(stats, null, 2));
+        } catch (error) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Failed to get stats' }));
+        }
+        return;
+      }
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Stats not configured' }));
       return;
     }
 

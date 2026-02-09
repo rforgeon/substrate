@@ -10,7 +10,7 @@ async function main() {
   // For SSE mode, defer vector search to allow quick startup
   const deferVectorSearch = transportMode === 'sse' || transportMode === 'http';
 
-  const { server, cleanup, initializeVectorSearch } = await createSubstrateServer({
+  const { server, context, cleanup, initializeVectorSearch } = await createSubstrateServer({
     defer_vector_search: deferVectorSearch,
   });
 
@@ -33,6 +33,16 @@ async function main() {
       port,
       apiKey,
       corsOrigins: process.env['SUBSTRATE_CORS_ORIGINS']?.split(',') ?? ['*'],
+      onDumpRequest: async () => {
+        const observations = context.storage.query({});
+        return {
+          total: observations.length,
+          observations,
+        };
+      },
+      onStatsRequest: async () => {
+        return context.storage.getStats();
+      },
     });
 
     // Start HTTP server first (for health checks)
