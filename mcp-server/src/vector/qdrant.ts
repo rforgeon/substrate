@@ -28,6 +28,7 @@ export class QdrantStorage {
     this.client = new QdrantClient({
       url: qdrantConfig.url,
       apiKey: qdrantConfig.api_key,
+      checkCompatibility: false, // Skip version check for Railway compatibility
     });
     this.collectionName = qdrantConfig.collection_name;
     this.dimension = embeddingConfig.dimension;
